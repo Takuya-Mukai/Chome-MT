@@ -32,7 +32,7 @@ function initSystem(paras::Paras; N::Int=10)
 end
 
 
-function simulate(system, paras; nsteps::Int=1000, dt::Float64=2e-4)
+function simulate(system, paras; nsteps::Int=1000, dt::Float64=2e-4, isave = 500)
 
     # Relaxation!(system, paras)
 
@@ -44,8 +44,12 @@ function simulate(system, paras; nsteps::Int=1000, dt::Float64=2e-4)
     orientaions = rand(N) * 2π
     vel = paras.vel
 
-    all_pos = [similar(system.positions) for _ in 1:nsteps]
-    all_ϕ = [similar(orientaions) for _ in 1:nsteps]
+    # all_pos = [similar(system.positions) for _ in 1:nsteps]
+    # all_ϕ = [similar(orientaions) for _ in 1:nsteps]
+
+    all_pos = typeof(system.positions)[]
+    all_ϕ = typeof(orientaions)[]
+
     # force_cache = [similar(system.F)]
     for step in 1:nsteps
         # if findall(x->x==SA[0.,0.], positions) == 0
@@ -82,15 +86,120 @@ function simulate(system, paras; nsteps::Int=1000, dt::Float64=2e-4)
             # velocities[i] = v
         end
 
-        all_pos[step] = copy(system.positions)
-        all_ϕ[step] = copy(orientaions)
+        # all_pos[step] = copy(system.positions)
+        # all_ϕ[step] = copy(orientaions)
+        if step % isave == 0
+            push!(all_pos, copy(system.positions))
+            push!(all_ϕ, copy(orientaions))
+        end
+        # end
+    end
+    return all_pos, all_ϕ
+end
+
+function simulate_midStep(system, paras; nsteps::Int=1000, dt::Float64=2e-4, isave=500)
+
+    # Relaxation!(system, paras)
+
+    N = length(system.positions)
+    L = paras.L
+    Dr = paras.Dr
+    ref_pos = L / 2
+    velocities = [randn(eltype(system.positions)) for _ in 1:length(system.positions)]
+    orientaions = rand(N) * 2π
+    vel = paras.vel
+
+    # all_pos = [similar(system.positions) for _ in 1:nsteps]
+    # all_ϕ = [similar(orientaions) for _ in 1:nsteps]
+
+    all_pos = typeof(system.positions)[]
+    all_ϕ = typeof(orientaions)[]
+
+    # force_cache = [similar(system.F)]
+
+    for step in 1:nsteps
+        posisitons_tmp = copy(system.positions)
+        orienations_tmp = copy(orientaions)
+        # if findall(x->x==SA[0.,0.], positions) == 0
+        #     prinln("help!")
+        # end
+        # compute forces at this step
+
+        # !!! mid step
+        map_pairwise!(
+            (x, y, i, j, d2, output) -> update_interaction_FEND!(x, y, i, j, d2, orientaions, paras, output),
+            system
+        )
+
+        #* Update positions and velocities in mid step
+        # eta = @SVector randn(N)
+        @inbounds for i in eachindex(system.positions)
+            f_mid = system.ForcesAndTorques.force[i]
+            x_mid = system.xpositions[i]
+            ϕ_mid = orientaions[i]
+            # v = velocities[i]
+            # vel = 0.8*x[1] / L + 0.2
+            x_mid = x_mid + SA[vel*cos(ϕ_mid), vel*sin(ϕ_mid)] * 0.5*dt + 0.5*f_mid * dt
+
+            # x = x + v * dt + (f / 2) * dt^2 + vel * SA[cos(ϕ), sin(ϕ)] * dt
+            # v = v + f * dt
+
+            ϕ_mid = ϕ_mid + system.ForcesAndTorques.torque[i] * 0.5*dt
+
+            #* wrapping to origin for obtaining a pretty animation
+            x_mid = wrap_relative_to(x_mid, SVector(ref_pos, ref_pos), system.unitcell)
+            # x = wrap_relative_to(x, SVector(0.0, 0.0), system.unitcell)
+
+            # !!! IMPORTANT: Update arrays of positions and velocities
+            system.positions[i] = x_mid
+            orientaions[i] = ϕ_mid
+            # velocities[i] = v
+        end
+
+        # !!! final step
+        map_pairwise!(
+            (x, y, i, j, d2, output) -> update_interaction_FEND!(x, y, i, j, d2, orientaions, paras, output),
+            system
+        )
+        
+        @inbounds  for i in eachindex(system.positions)
+            f = system.ForcesAndTorques.force[i]
+            # x = system.xpositions[i]
+            x = posisitons_tmp[i]
+            ϕ = orienations_tmp[i]
+            # v = velocities[i]
+            # vel = 0.8*x[1] / L + 0.2
+            x = x + SA[vel*cos(ϕ), vel*sin(ϕ)] * dt + f * dt
+
+            # x = x + v * dt + (f / 2) * dt^2 + vel * SA[cos(ϕ), sin(ϕ)] * dt
+            # v = v + f * dt
+
+            ϕ = ϕ + system.ForcesAndTorques.torque[i] * dt + sqrt(2 * Dr * dt) * randn()
+
+            #* wrapping to origin for obtaining a pretty animation
+            x = wrap_relative_to(x, SVector(ref_pos, ref_pos), system.unitcell)
+            # x = wrap_relative_to(x, SVector(0.0, 0.0), system.unitcell)
+
+            # !!! IMPORTANT: Update arrays of positions and velocities
+            # velocities[i] = v
+            system.positions[i] = x
+            orientaions[i] = ϕ
+        end
+
+        # all_pos[step] = copy(system.positions)
+        # all_ϕ[step] = copy(orientaions)
+        if step % isave == 0
+            push!(all_pos, copy(system.positions))
+            push!(all_ϕ, copy(orientaions))
+        end
         # end
     end
     return all_pos, all_ϕ
 end
 
 
-function normDistri(x; sigma=1, mu = 0)
+
+function Gaussian1D(x; sigma=1, mu=0)
     return  1/(sigma*sqrt(2π)) * exp(-0.5*((x-mu)/sigma)^2)
 end
 

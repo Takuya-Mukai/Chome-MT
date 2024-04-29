@@ -82,3 +82,23 @@ function Animattion(pos, dir, field, out_filepath::AbstractString="test.mp4";
         # v[] = vs[frame_i]
     end
 end
+
+function snapshort(pos, dir, field)
+    fig = Figure()
+    ax = Axis(fig[1, 1])
+    ax.aspect = DataAspect()
+    limit = (-L, L, -L, L, -L, L)
+    XS = 0:L
+    YS = 0:L
+
+    x = (vec2comp(pos)[1])
+    y = (vec2comp(pos)[2])
+    u = (vec2comp(dir)[1])
+    v = (vec2comp(dir)[2])
+    heatmap!(ax, XS, YS, field)
+    arrows!(ax, x, y, u, v,
+        linewidth=1, lengthscale=L / 40,
+        align=:center)
+
+    return fig
+end
