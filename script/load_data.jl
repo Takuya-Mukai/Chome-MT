@@ -8,8 +8,8 @@ function vec2comp(vec)
     return v1, v2
 end
 
-dir = "Data/horizontal_N1000_eps0.1_nstep5000000_dt0.0005__isave100_sample3.jld2"
-
+# dir = "Data/radial_N1000_eps0.1_nstep5000000_dt0.0005__isave100_sample1.jld2"
+dir = "Data/horizontal_N1000_eps0.1_nstep5000000_dt0.0005__isave100_sample2.jld2"
 data = load(dir)
 all_pos = data["pos"]
 all_ϕ = data["angle"]
@@ -21,10 +21,19 @@ savew_dir = join(split(split(dir, "/")[2], ".")[1:end-1], ".")
 XS = 0:L
 YS = 0:L
 
+
+
 # field = [Gaussian2D(x, y, L / 2, L / 2, L / 4) for x in XS, y in YS]
 # field = [(.517 - Gaussian1D(y, sigma=L / 4, mu=L / 2) * 100)  for x in XS, y in YS]
-field = [( .05 + Gaussian1D(y, sigma=L / 4, mu=L / 2) * 100) for x in XS, y in YS]
-@time Animattion(all_pos, nt, field, "Videos/" * savew_dir * ".mp4"; framerate=60, isave=1, L=L)
+# field = [( .05 + Gaussian1D(y, sigma=L / 4, mu=L / 2) * 100) for x in XS, y in YS]
+
+
+# field =  [(1.05 - (Gaussian2D(x, y, L / 4, L / 4, L / 6)
+#              + Gaussian2D(x, y, L / 4, 3 * L / 4, L / 6)
+#              + Gaussian2D(x, y, 3 * L / 4, L / 4, L / 6)
+            #    + Gaussian2D(x, y, 3 * L / 4, 3 * L / 4, L / 6))) for x in XS, y in YS]
+
+# @time Animattion(all_pos, nt, field, "Videos/" * savew_dir * ".mp4"; framerate=60, isave=1, L=L)
 
 
 """
@@ -68,22 +77,45 @@ function MeanOrientation(particle_orientations, particles_pos, L, ;num_layers)
 
     return order_parameter, num_paricles_in_layer
 end
+function smoothing_filter(data, bins)
+    smoothed_data = similar(data)
+    N = length(data)
 
+    for i in 1:N
+        if i > bins && i < N-bins
+            smoothed_data[i] = mean(data[i-bins:i+bins])
+        elseif i <= bins
+            smoothed_data[i] = mean(data[i:i+2*bins+1])
+        elseif N-bins <= i
+            smoothed_data[i] = mean(data[i-(2*bins+1):i])             
+        end
+    end
 
-# mean_angle, num_in_layer = MeanOrientation(all_ϕ[5000], all_pos[5000],L, ;num_layers=30)
+    return smoothed_data
+end
 
-# fig = Figure()
-# ax1 = Axis(fig[1, 1], yticklabelcolor=:blue, ylabel="polar parameter", xlabel="y-axis / L", ylabelcolor="blue", 
-#     xgridvisible=false, ygridvisible=false,
-#     xlabelsize=28, ylabelsize=28, yticklabelsize=22, xticklabelsize=22)
-# ax2 = Axis(fig[1, 1], yticklabelcolor=:red, yaxisposition=:right, ylabel="portation of MTs (%)", 
-#     ylabelcolor="red", xgridvisible=false, ygridvisible=false,
-#     xlabelsize=28, ylabelsize=28, yticklabelsize=22, xticklabelsize=22)
-# hidespines!(ax2)
-# hidexdecorations!(ax2, grid=false)
-# # hidexdecorations!(ax1, grid=false)
+step = 8000
+mean_angle, num_in_layer = MeanOrientation(all_ϕ[step], all_pos[step], L, ; num_layers=70)
 
-# lines!(ax1, 0..1, mean_angle, color=:blue)
-# lines!(ax2,  100*num_in_layer/1000, color=:red)
-# fig
+x = range(0, 1, 70)
+fit_angle = curve_fit(Polynomial, x, mean_angle, 10)
+fit_num = curve_fit(Polynomial, x, 100*num_in_layer/1000, 10)
+# angle_smoothed = smoothing_filter(mean_angle, 5)
+# num_smoothed = smoothing_filter(num_in_layer, 5)
+fig = Figure()
+ax1 = Axis(fig[1, 1], yticklabelcolor=:blue, ylabel="polar parameter", xlabel="y-axis / L", ylabelcolor="blue", 
+    xgridvisible=false, ygridvisible=false,
+    xlabelsize=28, ylabelsize=28, yticklabelsize=22, xticklabelsize=22)
+ax2 = Axis(fig[1, 1], yticklabelcolor=:red, yaxisposition=:right, ylabel="density of MTs (%)", 
+    ylabelcolor="red", xgridvisible=false, ygridvisible=false,
+    xlabelsize=28, ylabelsize=28, yticklabelsize=22, xticklabelsize=22)
+hidespines!(ax2)
+hidexdecorations!(ax2, grid=false)
+# hidexdecorations!(ax1, grid=false)
+
+# scatterlines!(ax1, 0 .. 1, angle_smoothed, color=:blue)
+# scatterlines!(ax2, 100 * num_smoothed / 1000, color=:red)
+lines!(ax1, 0 .. 1, fit_angle.(x), color=:blue, linewidth=2.5)
+lines!(ax2, fit_num.(x), color=:red, linestyle=:dash, linewidth=3)
+fig
 # lines(mean_angle)

@@ -46,14 +46,14 @@ YS = 0:L
 # field = [Gaussian1D(y, sigma=L/4, mu=L/2) for x in XS, y in YS]
 field = [(Gaussian1D(y, sigma=L/4, mu=L/2)*100 ) for x in XS, y in YS]
 
-# field = [ (1.1 - (Gaussian2D(x, y, L / 4, L / 4, L / 8) 
-#           + Gaussian2D(x, y, L / 4, 3 * L / 4, L / 8)
-#           + Gaussian2D(x, y, 3 * L / 4, L / 4, L / 8)
-#           + Gaussian2D(x, y, 3 * L / 4, 3 * L / 4, L / 8))) for x in XS, y in YS]
+field = [ (1.0 - (Gaussian2D(x, y, L / 4, L / 4, L / 8) 
+          + Gaussian2D(x, y, L / 4, 3 * L / 4, L / 8)
+          + Gaussian2D(x, y, 3 * L / 4, L / 4, L / 8)
+          + Gaussian2D(x, y, 3 * L / 4, 3 * L / 4, L / 8))) for x in XS, y in YS]
 
 
 # @time Animattion(all_pos, nt, field, "Videos/" * savew_dir * ".mp4"; framerate=600, isave=10, L=L)
-@time Animattion(all_pos, nt, field, "test_interaction8.mp4"; framerate=60, isave=1, L=L)
+# @time Animattion(all_pos, nt, field, "test_interaction8.mp4"; framerate=60, isave=1, L=L)
 # @time Animattion(all_pos, nt, "test_interaction.mp4"; framerate=600, isave=10, L = L)
 
 

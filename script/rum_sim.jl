@@ -34,7 +34,8 @@ function run_Nsample(nsample = 5, ϵ=0.1)
         println("---- Finished ----")
 
         #* save data
-        save_dir = "Data/horizontal_N$(N)_eps$(ϵ)_nstep$(n_step)_dt$(dt)__isave$(100)_sample$(i+2)"
+        # save_dir = "Data/horizontal_N$(N)_eps$(ϵ)_nstep$(n_step)_dt$(dt)__isave$(100)_sample$(i)"
+        save_dir = "Data/radial_N$(N)_eps$(ϵ)_nstep$(n_step)_dt$(dt)__isave$(100)_sample$(i)"
         data = Dict(
             "pos" => all_pos,
             "angle" => all_ϕ
