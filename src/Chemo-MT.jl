@@ -21,6 +21,7 @@ include("Interaction/Chemotaxis.jl")
 include("Simulation.jl")
 include("Relaxation.jl")
 include("vis.jl")
+include("Analysis.jl")
 
 
 

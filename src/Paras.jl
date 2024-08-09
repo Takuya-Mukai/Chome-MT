@@ -10,7 +10,7 @@ Parameters of system and particles
     A = source rate of chemical produced
 """
 
-struct Paras 
+mutable struct Paras 
     Dr::Float64
     vel::Float64
     J::Float64

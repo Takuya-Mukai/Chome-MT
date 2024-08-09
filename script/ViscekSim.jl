@@ -30,16 +30,16 @@ include("../src/Chemo-MT.jl")
 
 # @time Animattion(all_pos, all_ori, "Videos/Viscek/test_v1" * ".mp4"; framerate=60, L=paras.L)
 
-function get_order_parameter(all_ori)
-    # sample = 1:100:10_000
-    # n = length(sample)
-    op_list = zeros(100)
-    N = length(all_ori)
-    for i in 1:100
-        op_list[i] = norm(mean(angle2dir.(all_ori[N-i])))
-    end
-    return mean(op_list)
-end
+# function get_order_parameter(all_ori)
+#     # sample = 1:100:10_000
+#     # n = length(sample)
+#     op_list = zeros(100)
+#     N = length(all_ori)
+#     for i in 1:100
+#         op_list[i] = norm(mean(angle2dir.(all_ori[N-i])))
+#     end
+#     return mean(op_list)
+# end
 
 function phase_transition(alpha_list)
 
