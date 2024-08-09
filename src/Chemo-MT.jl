@@ -9,12 +9,15 @@ using Parameters
 import CellListMap.PeriodicSystems: copy_output, reset_output!, reducer
 import CellListMap.wrap_relative_to
 using JLD2
+using ProgressMeter
 using GLMakie
 
 include("Paras.jl")
 include("Interaction.jl")
-include("Intersctions/Field.jl")
-include("Intersctions/Chemotaxis.jl")
+include("Interaction/Field.jl")
+include("Interaction/Viscek.jl")
+include("Interaction/viscek_spatio.jl")
+include("Interaction/Chemotaxis.jl")
 include("Simulation.jl")
 include("Relaxation.jl")
 include("vis.jl")

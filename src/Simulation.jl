@@ -221,8 +221,8 @@ function simulation_chemotaxis(system, paras; nsteps::Int=1000, dt::Float64=2e-4
     ref_pos = L/2
     dx = paras.dx
     ω0 = 0.0
-    ω = 2.
-    α = 2.0
+    ω = 3.
+    α = 7.0
 
     velocities = [randn(eltype(system.positions)) for _ in 1:length(system.positions)]
     orientaions = rand(N) * 2π
@@ -292,4 +292,165 @@ function simulation_chemotaxis(system, paras; nsteps::Int=1000, dt::Float64=2e-4
     end
 
     return all_pos, all_ϕ, all_field
+end
+
+
+
+function simulation_visceks(system, paras; nsteps::Int=1000, dt::Float64=2e-4, isave=100)
+    N = length(system.positions)
+    L = paras.L
+    Dr = paras.Dr
+    ref_pos = L / 2
+    dx = paras.dx
+    ω0 = 0.0
+    # ω = 3.0
+    # α = 7.0
+
+    velocities = [randn(eltype(system.positions)) for _ in 1:length(system.positions)]
+    orientaions = rand(N) * 2π
+    vel = paras.vel
+
+    all_pos = typeof(system.positions)[]
+    all_ϕ = typeof(orientaions)[]
+
+    # all_field = typeof(field)[]
+
+    # chemo_force = similar(system.ForcesAndTorques.force)
+    # chemo_torque = similar(system.ForcesAndTorques.torque)
+
+
+    # nx = round(Int, L / dx)
+    # @show nx
+
+    # field = zeros(nx, nx)
+    # field = [(x * L)/nx for x in 1:nx, y in 1:nx]
+    # field0 = copy(field)
+
+    # all_field = typeof(field)[]
+
+    # colloild_bound = BoundVec(paras.sigma, dx)
+
+
+    for step in 1:nsteps
+        # calculate pariwise force
+        map_pairwise!(
+            (x, y, i, j, d2, output) -> update_interaction!(x, y, i, j, d2, orientaions, paras, output),
+            system
+        )
+
+        """updata position and orientaions"""
+        @inbounds for i in eachindex(system.xpositions)
+            x = system.xpositions[i]
+            ϕ = orientaions[i]
+
+            # F_chem = chemotaxis_periodic(x, field0, paras, colloild_bound)
+
+            f = system.ForcesAndTorques.force[i]
+
+            x = x + SA[vel*cos(ϕ), vel*sin(ϕ)] * dt + f * dt
+
+            T = ω0 + system.ForcesAndTorques.torque[i] 
+            # T = ω0 + system.ForcesAndTorques.torque[i] + ω * sin(atan(F_chem[2], F_chem[1]) - ϕ) + sqrt(2 * Dr * dt) * randn()
+            ϕ = ϕ + T * dt + sqrt(2 * Dr * dt) * randn()
+
+            # !!! IMPORTANT: Update arrays of positions and velocities
+            x = wrap_relative_to(x, SVector(ref_pos, ref_pos), system.unitcell)
+            system.positions[i] = x
+            orientaions[i] = ϕ
+        end
+
+        # """
+        # updata field
+        # """
+        # field, field0 = UpdateField(system.xpositions, field, field0, paras, dt)
+        # field, field0 = field0, field
+
+        #* save data
+        if step % isave == 0
+            push!(all_pos, copy(system.positions))
+            push!(all_ϕ, copy(orientaions))
+        end
+    end
+
+    return all_pos, all_ϕ
+end
+
+
+function simulation_visceks_spatio(system, paras, spatio_func; nsteps::Int=1000, dt::Float64=2e-4, isave=100)
+    N = length(system.positions)
+    L = paras.L
+    Dr = paras.Dr
+    ref_pos = L / 2
+    dx = paras.dx
+    ω0 = 0.0
+    # ω = 3.0
+    # α = 7.0
+
+    velocities = [randn(eltype(system.positions)) for _ in 1:length(system.positions)]
+    orientaions = rand(N) * 2π
+    vel = paras.vel
+
+    all_pos = typeof(system.positions)[]
+    all_ϕ = typeof(orientaions)[]
+
+    # all_field = typeof(field)[]
+
+    # chemo_force = similar(system.ForcesAndTorques.force)
+    # chemo_torque = similar(system.ForcesAndTorques.torque)
+
+
+    # nx = round(Int, L / dx)
+    # @show nx
+
+    # field = zeros(nx, nx)
+    # field = [(x * L)/nx for x in 1:nx, y in 1:nx]
+    # field0 = copy(field)
+
+    # all_field = typeof(field)[]
+
+    # colloild_bound = BoundVec(paras.sigma, dx)
+
+
+    for step in 1:nsteps
+        # calculate pariwise force
+        map_pairwise!(
+            (x, y, i, j, d2, output) -> update_interaction!(x, y, i, j, d2, orientaions, paras, spatio_func, output),
+            system
+        )
+
+        """updata position and orientaions"""
+        @inbounds for i in eachindex(system.xpositions)
+            x = system.xpositions[i]
+            ϕ = orientaions[i]
+
+            # F_chem = chemotaxis_periodic(x, field0, paras, colloild_bound)
+
+            f = system.ForcesAndTorques.force[i]
+
+            x = x + SA[vel*cos(ϕ), vel*sin(ϕ)] * dt + f * dt
+
+            T = ω0 + system.ForcesAndTorques.torque[i] 
+            # T = ω0 + system.ForcesAndTorques.torque[i] + ω * sin(atan(F_chem[2], F_chem[1]) - ϕ) + sqrt(2 * Dr * dt) * randn()
+            ϕ = ϕ + T * dt + sqrt(2 * Dr * dt) * randn()
+
+            # !!! IMPORTANT: Update arrays of positions and velocities
+            x = wrap_relative_to(x, SVector(ref_pos, ref_pos), system.unitcell)
+            system.positions[i] = x
+            orientaions[i] = ϕ
+        end
+
+        # """
+        # updata field
+        # """
+        # field, field0 = UpdateField(system.xpositions, field, field0, paras, dt)
+        # field, field0 = field0, field
+
+        #* save data
+        if step % isave == 0
+            push!(all_pos, copy(system.positions))
+            push!(all_ϕ, copy(orientaions))
+        end
+    end
+
+    return all_pos, all_ϕ
 end

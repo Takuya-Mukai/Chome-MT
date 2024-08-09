@@ -3,10 +3,10 @@
 """
 
 function UpdateField(pos, field, field0, paras, dt)
-    σ=paras.sigma/6
+    σ=paras.sigma
     dx = paras.dx
     A = paras.A 
-    λ = .0
+    λ = .01
     L = paras.L
     xref = SA[L/2 , L/2]
     sides = SA[L , L]
@@ -33,7 +33,7 @@ function UpdateField(pos, field, field0, paras, dt)
         end
     end
 
-    field[field .> 1.5] .= 1.5
+    field[field .> 1.0] .= 1.0
     # updataGrid!(field, field0, paras, dt)
     # PeriodicBoundary!(field0, field, paras, dt)
     
