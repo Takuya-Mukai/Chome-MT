@@ -2,7 +2,7 @@ include("../src/Chemo-MT.jl")
 
 
 rho = 1
-L = 5
+L = 30
 j = 1.0
 eta = 1.0
 N = round(Int, L^2*rho)
@@ -30,11 +30,12 @@ Jmax = maximum(spatio_func.(0:L, 0:L))*π
 Jmin = minimum(spatio_func.(0:L, 0:L))*π
 
 eta_list = 0.0:0.2: (Jmax + 2.0)
-N_sample = 2
+N_sample = 20
 
 # save_root = "/mnt/SSD_RAID0/kyle/viscek_spatio/" 
-save_root = "Data/test/"
-fname = "VS_sin1_v1_"
+save_root = "Data/"
+# save_root = "E:/Kyle/Simulation_Data/"
+fname = "VS_sin05_v1/"
 
 save_dir = save_root*fname
 function phase_transition_spatio(eta_list, paras, spatio_func; save_dir="")
@@ -43,19 +44,19 @@ function phase_transition_spatio(eta_list, paras, spatio_func; save_dir="")
     LEN = length(eta_list)
     @show LEN
     for i in 1:LEN
-        eta = eta_list[i]
+        eta = round(eta_list[i], digits=3)
         @show eta
         paras.Dr = eta
         system = initSystem(paras, N=N)
 
-        all_pos, all_ori = simulation_visceks_spatio(system, paras, spatio_func;
+        @time all_pos, all_ori = simulation_visceks_spatio(system, paras, spatio_func;
             nsteps=50_000,
             dt=0.001,
             isave=60)
         
         if length(save_dir) != 0
             data = Dict("all_pos"=>all_pos, "all_ori"=>all_ori)
-            save(save_dir*"sample$i.jld2", data)
+            @time save(save_dir*"eta_$(eta).jld2", data)
         end
         # op = get_order_parameter(all_ori)
         # println("ordre parameter = $op")
@@ -69,8 +70,10 @@ function pt_sampling(N_sample, eta_list; save_dir="")
 
     # eta_list = 0.0:0.2:(Jmax+2.0)
     p = Progress(N_sample; dt=1.0)
-    for i in 1:N_sample
-        @time phase_transition_spatio(eta_list, paras, spatio_func; save_dir=save_dir)
+    for Nsamp in 1:N_sample
+        save_dir_ = save_dir*"sample$(Nsamp)_"
+        @show save_dir_
+        @time phase_transition_spatio(eta_list, paras, spatio_func; save_dir=save_dir_)
         # data = Dict("op" => op_list, "eta" => eta_list)
         # save("Data/viscek_spatio/phase_transistion_spatio_05_sample_$i.jld2", data)
         next!(p)
@@ -78,4 +81,5 @@ function pt_sampling(N_sample, eta_list; save_dir="")
 end
 
 pt_sampling(N_sample, eta_list; save_dir=save_dir)
+
 
