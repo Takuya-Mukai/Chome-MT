@@ -12,6 +12,7 @@ using JLD2
 using ProgressMeter
 using GLMakie
 
+# include("utils.jl")
 include("Paras.jl")
 include("Interaction.jl")
 include("Interaction/Field.jl")
@@ -20,7 +21,7 @@ include("Interaction/viscek_spatio.jl")
 include("Interaction/Chemotaxis.jl")
 include("Simulation.jl")
 include("Relaxation.jl")
-# include("vis.jl")
+include("vis.jl")
 include("Analysis.jl")
 
 
@@ -63,4 +64,18 @@ end
 function wrap_position(x, L)
     x = x - floor(x / L) * L
     return x
+end
+
+
+"""
+    obj2txt(object, file_name)
+Write a julia object to txt file with field name and value
+"""
+function obj2txt(object, file_name)
+    open(file_name, "w") do io
+        T = typeof(object)
+        for name in fieldnames(T)
+            write(io, "$name = $(getfield(object, name))\n")
+        end
+    end
 end

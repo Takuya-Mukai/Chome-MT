@@ -1,42 +1,42 @@
 include("../src/Chemo-MT.jl")
 
-# rho = 1
+rho = 1
 L = 20
-# j = 1.0
-# eta = 1.5
-# N = round(Int, L^2*rho)
-# # alpha = eta - J*rho
-# # alpha = -1
-# # j = 
-# # j = (eta - alpha) / rho
-# J = j / π
-# # # @show alpha
+j = 1.0
+eta = 0.0
+N = round(Int, L^2*rho)
+# alpha = eta - J*rho
+# alpha = -1
+# j = 
+# j = (eta - alpha) / rho
+J = j / π
+# # @show alpha
 
-# paras = initParas(
-#                 Dr = eta, 
-#                 vel=1.0, 
-#                 J=J, 
-#                 epsilon=0.0, 
-#                 cutoff=2, 
-#                 L=L,
-#                 dx=0.1, 
-#                 sigma=1)
+paras = initParas(
+                Dr = eta, 
+                vel=1.0, 
+                J=J, 
+                epsilon=0.0, 
+                cutoff=2, 
+                L=L,
+                dx=0.1, 
+                sigma=1)
 
-# system = initSystem(paras, N=N)
+system = initSystem(paras, N=N)
 
-# # spatio_func(x, y) = sin(y * π / L) + 0.5
-# spatio_func(x, y) = + 1
+# spatio_func(x, y) = sin(y * π / L) + 0.5
+spatio_func(x, y) = + 1
 
 # alpha_y(eta, rho, x,y) = eta - rho*j*spatio_func(x,y)/π
 
-# @time all_pos, all_ori = simulation_visceks_spatio(system, paras, spatio_func;
-#                                                     nsteps=50_000,
-#                                                     dt=0.001,
-#                                                     isave=60)
+@time all_pos, all_ori = simulation_visceks_spatio(system, paras, spatio_func;
+                                                    nsteps=50_000,
+                                                    dt=0.001,
+                                                    isave=60)
 
 
 
-# @time Animattion(all_pos, all_ori, "Videos/Viscek/test_spatio_v2" * ".mp4"; framerate=60, L=paras.L)
+@time Animattion(all_pos, all_ori, "Videos/Viscek/positiveJ" * ".mp4"; framerate=60, L=paras.L)
 
 
 
@@ -87,7 +87,7 @@ function phase_transition_spatio(eta_list, spatio_func)
 end
 
 
-spatio_func(x, y) = sin(y * π / L) + 0.5 
+# spatio_func(x, y) = -1
 
 # Jmax = maximum(spatio_func.(0:L, 0:L))*π
 # Jmin = minimum(spatio_func.(0:L, 0:L))*π
@@ -103,25 +103,25 @@ spatio_func(x, y) = sin(y * π / L) + 0.5
 """
 sampling
 """
-N_sample = 20
+# N_sample = 20
 
-function pt_sampling(N_sample)
-    L = 20
-    Jmax = maximum(spatio_func.(0:L, 0:L))*π
-    Jmin = minimum(spatio_func.(0:L, 0:L))*π
+# function pt_sampling(N_sample)
+#     L = 20
+#     Jmax = maximum(spatio_func.(0:L, 0:L))*π
+#     Jmin = minimum(spatio_func.(0:L, 0:L))*π
 
-    eta_list = 0.0:0.2: (Jmax + 2.0)
-    p = Progress(N_sample; dt=5.0)
-    for i in 1:N_sample
-        op_list = phase_transition_spatio(eta_list, spatio_func)
-        data = Dict("op" => op_list, "eta" => eta_list)
-        save("Data/viscek_spatio/phase_transistion_spatio_05_sample_$i.jld2", data)
+#     eta_list = 0.0:0.2: (Jmax + 2.0)
+#     p = Progress(N_sample; dt=5.0)
+#     for i in 1:N_sample
+#         op_list = phase_transition_spatio(eta_list, spatio_func)
+#         data = Dict("op" => op_list, "eta" => eta_list)
+#         save("Data/viscek_spatio/phase_transistion_spatio_05_sample_$i.jld2", data)
 
-        next!(p)
-    end
-end
+#         next!(p)
+#     end
+# end
 
-@time @time pt_sampling(N_sample)
+# @time @time pt_sampling(N_sample)
 
 
 """
