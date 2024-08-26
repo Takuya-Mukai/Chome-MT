@@ -9,7 +9,7 @@ function update_interaction!(x, y, i, j, d2, orientaions, paras, spatio_func, ou
     # L = paras.L
     σ = paras.sigma
     
-    Jij = J*spatio_func(x[2],y[2])
+    Jij = J*spatio_func(x[2],y[2], paras.L)
     #* calculate pariwise force interaction from hardcore repulsion
     # r = y - x
     d = sqrt(d2)
