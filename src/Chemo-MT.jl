@@ -11,6 +11,10 @@ import CellListMap.wrap_relative_to
 using JLD2
 using ProgressMeter
 using GLMakie
+using CairoMakie
+
+CairoMakie.activate!()
+
 
 # include("utils.jl")
 include("Paras.jl")

@@ -1,7 +1,7 @@
 include("../src/Chemo-MT.jl")
 
 rho = 1
-L = 20
+L = 50
 j = 1.0
 eta = 0.0
 N = round(Int, L^2*rho)
