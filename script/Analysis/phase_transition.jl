@@ -1,6 +1,6 @@
 include("../../src/Chemo-MT.jl")
-using DelimitedFiles
 using CairoMakie
+using DelimitedFiles
 
 """
 get all file with .jld2
@@ -12,8 +12,6 @@ function get_file_list(dir)
     for i in eachindex(all_file)
         if split(all_file[i], ".")[end] == "jld2" && split(all_file[i], ".")[1] != ""
             append!(file_list, [all_file[i]])
-        else
-            nothing
         end
     end
     return file_list 
@@ -61,7 +59,6 @@ function phase_transistion(sorted_file, dir)
     Neta = length(sorted_file[1])
     eta_list = zeros(Neta)
     op_list = []
-    # op means order order_parameter
     Threads.@threads for sample in sorted_file
         op = zeros(Neta)
         for i_eta in 1:Neta
@@ -136,7 +133,6 @@ function output_order_parameters_to_txt(eta, op, xo, yo, js, dir = loaddir)
         writedlm(file, [eta, op, xo, yo, js])
     end
 end
-# loaddir means the directory of data
 # loaddir = "/Volumes/Extreme SSD/Kyle/Simulation_Data/VS_sin_v1/"
 # loaddir = "F:/Kyle/Simulation_Data/VS_step_funcJ1_v1/"
 # loaddir = "//NAS-Kawamata/kyoto/Kyle Chan/Simulation_Data/Anisotropic_MTs_Swarm/Data/VS_sin1_v2/"
@@ -146,33 +142,33 @@ end
 # loaddir = "/home/kylechan/Dropbox/Research/Project/Chome-MT/Data/VS_RL_4_v1/"
 # loaddir = "/media/kylechan/Extreme SSD/Kyle/Simulation_Data/VS_RL_4_L50_v2/"
 # loaddir = "Data/post_data/yStep_Lfrac02_L30_v1/"
-loaddir = "Data/constant_L10_test/"
+# loaddir = "Data/Const_J1_L30_v1/"
 # loaddir = "/Volumes/Extreme SSD/Kyle/Simulation_Data/VS_step_funcJ1_v1/"
 
 # loaddir = "/mnt/SSD_RAID0/kyle/Viscek_anisotropic/yStep_v1/"
 
+# file_list = get_file_list(loaddir)
+# sorted_file = Division_into_smaple(file_list)
 
-file_list = get_file_list(loaddir)
-sorted_file = Division_into_smaple(file_list)
-
-@time eta_list, op_list = phase_transistion(sorted_file, loaddir)
-println("analysing...")
-@time op_list, xorder_list, yorder_list, eta_list = XYoder(sorted_file, loaddir)
+# @time eta_list, op_list = phase_transistion(sorted_file, loaddir)
+# println("analysing...")
+# @time op_list, xorder_list, yorder_list, eta_list = XYoder(sorted_file, loaddir)
 # @time op_list, xorder_list, yorder_list, eta_list = XYorder_inside(sorted_file, loaddir; xmin=0, xmax=L, ymin=L/2, ymax=2L/3)
 
 
 
-S1 = sorted_file[5]
-data = load(loaddir*S1[2])
-all_ori = data["all_ori"]
-all_pos = data["all_pos"]
+# S1 = sorted_file[5]
+# # pickup data
+# data = load(loaddir*S1[2])
+# all_ori = data["all_ori"]
+# all_pos = data["all_pos"]
 
 
-L = 10
+# L = 30
 # function spatio_func(x,y, L)
 #    (L/2 < y < 2L/3) ? 1.0 : 0.0
 # end
-spatio_func(x,y,L) = 1.0
+# spatio_func(x,y,L) = 1.0
 
 # function spatio_func(x,y,L)
 #     L_frac = .2
@@ -185,40 +181,20 @@ spatio_func(x,y,L) = 1.0
 #     end 
 # end
 
-Jmax = maximum(spatio_func.(0:L, 0:L, L)) 
-Jmin = minimum(spatio_func.(0:L, 0:L, L))
-J_field = [spatio_func(x,y,L) for x in 0:0.2:L, y in 0:0.2:L]
-Jmean = mean(J_field)
+# Jmax = maximum(spatio_func.(0:L, 0:L, L)) 
+# Jmin = minimum(spatio_func.(0:L, 0:L, L))
+# J_field = [spatio_func(x,y,L) for x in 0:0.2:L, y in 0:0.2:L]
+# Jmean = mean(J_field)
 
-output_order_parameters_to_txt(eta_list, op_list, xorder_list, yorder_list, [Jmean for i in 1:length(op_list)])
+# output_order_parameters_to_txt(eta_list, op_list, xorder_list, yorder_list, [Jmean for i in 1:length(op_list)])
 
-
-
-
-# @time Animattion(all_pos, all_ori, spatio_func,join(split(loaddir * S1[2], ".")[1:end-1], ".") * ".mp4"; framerate=60, L=10)
+# @time Animattion(all_pos, all_ori, spatio_func,join(split(loaddir * S1[3], ".")[1:end-1], ".") * ".mp4"; framerate=60, L=30)
 
 # frame = 500
 # fig = snapshort(all_pos[frame], all_ori[frame], spatio_func; L=30, colormap=:blue)
-# display(fig)git pull https://github.com/kylechanphy/Chome-MT.git
+# display(fig)
 # save(loaddir * "snapshort.pdf", fig)
 
-"""
-NOTE: function to make graph
-"""
-# make orientation to sin and cos
-function ori2xy(orientation)
-  sin_list = sin.(orientation)
-  cos_list = cos.(orientation)
-  return sin_list, cos_list
-end
-sincos=ori2xy.(all_ori)
-sin_list = sincos[1]
-cos_list = sincos[2]
-# fig = Figure()
-# f1 = Axis(fig[1,1],
-#         xlabel = L"μ/π",
-#         ylabel = L"<v0>")
-# scatterlines!(f1, )
 # fig = Figure()
 # ax = Axis(fig[1, 1], xlabel=L"\eta/\pi", ylabel="order parameter",
 #     xgridvisible=false, ygridvisible=false)
@@ -232,5 +208,51 @@ cos_list = sincos[2]
 # axislegend(framevisible=false)
 # display(fig)
 # save(loaddir*"phase_transition_in_XY.png",fig)
-eta_list = 0.0:0.2: (Jmax + 2.0)
-eta_list = 0.0:0.2: (Jmax + 2.0)
+
+
+function count_directories(dir_path::String)
+    all_files = readdir(dir_path)
+    dir_count = 0
+
+    for file in all_files
+        full_path = joinpath(dir_path, file)
+        if isdir(full_path)
+            dir_count += 1
+        end
+    end
+
+    return dir_count
+end
+
+loaddir = "Data/basic_Vicsek/constant_L10_ρ1/"
+# data_num = count_directories(loaddir)
+
+
+file_list = get_file_list(loaddir)
+sorted_file = Division_into_smaple(file_list)
+
+@time eta_list, op_list = phase_transistion(sorted_file, loaddir)
+println("analysing...")
+
+S1 = sorted_file[5]
+data = load(loaddir*S1[2])
+all_ori = data["all_ori"]
+all_pos = data["all_pos"]
+
+
+const L = 10
+
+# definition of the interaction strength
+spatio_func(x,y) = 1.0
+Jmax = maximum(spatio_func.(0:L, 0:L)) 
+Jmin = minimum(spatio_func.(0:L, 0:L))
+J_field = [spatio_func(x,y) for x in 0:0.2:L, y in 0:0.2:L]
+# Jmean = mean(spatio_func.(0:L, 0:L))
+
+# eta_list = 0.0:0.2: (Jmax + 2.0)
+
+const each_data_num::Int = 10
+local data_list = Vector{Float32}(undef, each_data_num+1)
+# begin with 0 since time is start from 0
+for i in 0:each_data_num
+    time = round(i/2)

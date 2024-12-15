@@ -1,15 +1,15 @@
 include("../src/Chemo-MT.jl")
-
+using Base.Threads
 
 """
-rho: density
+rho: density of particle
 L: length
 j: strength of interaction
 N: number of particle
 """
 rho = 1.0
 L = 10
-j = 1.0
+j = 2.0
 eta = 1.0
 N = round(Int, L^2*rho)
 # alpha = eta - J*rho
@@ -75,7 +75,7 @@ N_sample = 5
 # fname = "Const_j1_L30_v3/"
 
 
-function phase_transition_spatio(eta_list, paras, spatio_func, p; save_dir="", field_strength)
+function phase_transition_spatio(eta_list, paras, spatio_func, p; save_dir="")
     #* check if folder exist
     # op_list = similar(eta_list)
     LEN = length(eta_list)
@@ -86,7 +86,7 @@ function phase_transition_spatio(eta_list, paras, spatio_func, p; save_dir="", f
         println("")
         @show eta
         paras.Dr = eta
-        system = initSystem(paras, field_strength)
+        system = initSystem(paras, N=N)
         
 
         # make data
@@ -105,7 +105,7 @@ function phase_transition_spatio(eta_list, paras, spatio_func, p; save_dir="", f
             fio = open(save_dir*"eta_$(eta)_input.txt", "a")
             write(fio, spatio_func_string)
 
-            # save pitcture of background field
+            # save pitcture of each background field
             @time save_bg_field(paras, spatio_func, save_dir)
         end
 
@@ -115,7 +115,7 @@ function phase_transition_spatio(eta_list, paras, spatio_func, p; save_dir="", f
     end
 end
 
-function pt_sampling(N_sample, field_strength, eta_list; save_dir="")
+function pt_sampling(N_sample, paras, eta_list; save_dir="")
     println("---- Simulation Started ----")
     # L = 20
     # Jmax = maximum(spatio_func.(0:L, 0:L)) * π
@@ -126,7 +126,7 @@ function pt_sampling(N_sample, field_strength, eta_list; save_dir="")
     for Nsamp in 1:N_sample
         save_dir_ = save_dir*"sample$(Nsamp)_"
         # @show save_dir_regularity
-        @time phase_transition_spatio(eta_list, paras, spatio_func, p; save_dir=save_dir_, field_strength)
+        @time phase_transition_spatio(eta_list, paras, spatio_func, p; save_dir=save_dir_)
         # data = Dict("op" => op_list, "eta" => eta_list)
         # save("Data/viscek_spatio/phase_transistion_spatio_05_sample_$i.jld2", data)
         # next!(p)
@@ -150,21 +150,23 @@ end
 # Data directory
 save_root = "Data/basic_Vicsek/"
 savedir_list = String[]  # Initializing an empty array of Strings
-rho_list = Int[]       # Initializing an empty array of Integers
+j_list = []
 
 # make list for rho
 for i in 1:10
     local fname = "constant_L10_ρ$(i)/"
-    local rho = i
+    local j = i*1.0
     push!(savedir_list, save_root * fname)  # Adding the constructed filename to the list
-    push!(rho_list, rho)  # Adding the rho value to the list
+    push!(j_list, j)  # Adding the rho value to the list
 end
 
 # iterate for each ρ
-for i in 1:10
+println("Number of threads: $(Threads.nthreads())")
+@threads for i in 1:10
     local save_dir = savedir_list[i]
-    local rho = rho_list[i]
+    local copy_paras = deepcopy(paras)
+    copy_paras.J = j_list[i]
     local field_strength = round(Int, L^2*rho)
-    pt_sampling(N_sample, field_strength, eta_list; save_dir=save_dir)
+    pt_sampling(N_sample, copy_paras, eta_list; save_dir=save_dir)
     println("finished all data saved to $(save_dir)")
 end
