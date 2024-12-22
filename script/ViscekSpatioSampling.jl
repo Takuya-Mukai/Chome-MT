@@ -25,17 +25,40 @@ paras = initParas(
 
 
 
-# function spatio_func(x,y, L)
-#     c0 = SA[L/2, L/2]
-#     r = SA[x,y]
-#     dr = norm(c0 - r)
-    
-#     if dr <= L/4
-#         return 1.0
-#     else
-#         return 0.0
-#     end
-# end
+# Extract the code of a function from a file
+function extract_function_code(function_name, file_path)
+  # check if the specified file exists
+  if !isfile(file_path)
+    println("file $file_path does not exist.")
+    # return nothing
+  end
+
+  # open the file and read its contents
+  content = readlines(file_path)
+
+  # a flag to track if we are inside the function
+  inside_function = false
+  function_code = String[]  # to store the function code
+
+  # iterate through each line in the file
+  for line in content
+    # check for function definition
+    if occursin("#", line)
+      continue
+    elseif occursin("function $function_name", line)
+      inside_function = true
+      push!(function_code, line)  # add the function definition line
+    elseif inside_function
+      # add the function code until we encounter the end of the function
+      push!(function_code, line)
+      # check for the end of the function (i.e., 'end')
+      if occursin("end", line)
+        break
+      end
+    end
+  end
+  return join(function_code, "\n")
+end
 
 function spatio_func(x,y,L)
     L_frac = 0.6
