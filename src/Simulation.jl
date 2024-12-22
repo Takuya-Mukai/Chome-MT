@@ -1,4 +1,4 @@
-
+using Base.Threads
 
 
 function initPosition(paras, N)
@@ -419,7 +419,7 @@ function simulation_visceks_spatio(system, paras, spatio_func; nsteps::Int=1000,
         )
 
         """updata position and orientaions"""
-        @inbounds for i in eachindex(system.xpositions)
+        for i in eachindex(system.xpositions)
             x = system.xpositions[i]
             ϕ = orientaions[i]
 

@@ -1,7 +1,6 @@
 include("../src/Chemo-MT.jl")
 
 
-
 # Extract the code of a function from a file
 function extract_function_code(function_name, file_path)
   # check if the specified file exists
@@ -36,10 +35,6 @@ function extract_function_code(function_name, file_path)
   end
   return join(function_code, "\n")
 end
-
-
-
-
 
 
 function phase_transition_spatio(eta_list, paras::Paras, spatio_func::Function, spatio_func_string::String, p; save_dir="")
@@ -81,8 +76,8 @@ function pt_sampling(N_sample::Int32, eta_list::Vector, spatio_func::Function, s
     println("---- Simulation Started ----")
 
     p = Progress(N_sample*length(eta_list); dt=1.0)
-    for Nsamp in 1:N_sample
-        save_dir_ = save_dir*"sample$(Nsamp)_"
+    Threads.@threads for Nsamp in 1:N_sample
+        local save_dir_ = save_dir*"sample$(Nsamp)_"
         @show save_dir_
         @time phase_transition_spatio(eta_list, paras, spatio_func, spatio_func_string, p; save_dir=save_dir_)
         # data = Dict("op" => op_list, "eta" => eta_list)
@@ -116,7 +111,7 @@ N: number of particles
 =#
 
 rho = 1.0
-L = 5
+L = 100
 j = 1.0
 eta = 1.0
 N = round(Int, L^2*rho)
@@ -133,29 +128,63 @@ paras = initParas(
 )
 
 
-function spatio_func(x,y,L)
-    L_frac = 0.6
-    up = L/2 + L*L_frac/2
-    low = L/2 - L*L_frac/2
-    
-    if y > low && y < up
-        return 1.0
-    else
-        return 0.0
-    end
+function f10(x,y,L)
+  return 1.0
 end
 
-const spatio_func_string = extract_function_code("spatio_func", "script/ViscekSpatioSampling.jl")
+function f8(x,y,L)
+  if y < L*9/10 && y > L*1/10
+    return 1.0
+  else
+    return 0.0
+  end
+end
+
+function f6(x,y,L)
+  if y < L*8/10 && y > L*2/10
+    return 1.0
+  else
+    return 0.0
+  end
+end
+
+function f4(x,y,L)
+  if y < L*7/10 && y > L*3/10
+    return 1.0
+  else
+    return 0.0
+  end
+end
+
+function f2(x,y,L)
+  if y < L*6/10 && y > L*4/10
+    return 1.0
+  else
+    return 0.0
+  end
+end
+
+function f0(x,y,L)
+  return 0.0
+end
+
+spatio_func_list = [f0, f2, f4, f6, f8, f10]
+spatio_func_list_str = ["f0", "f2", "f4", "f6", "f8", "f10"]
+
+const spatio_func_code = [extract_function_code(spatio_func_list_str[i], "script/ViscekSpatioSampling.jl")
+                          for i in 1:6]
 
 save_root = "Data/"
-fname = "ystep_Lfrac06_L30_v3/"
-save_dir = save_root*fname
-
-Jmax = maximum(spatio_func.(0:L, 0:L, paras.L))* π
-Jmin = minimum(spatio_func.(0:L, 0:L, paras.L)) * π
+fname_list = ["f0", "f2", "f4", "f6", "f8", "f10"]
 eta_list = collect(0.0:0.2: (Jmax + 2.0))
-N_sample::Int32 = 1
+N_sample::Int32 = 24
+for i in 1:6
+  
+  local save_dir = save_root*fname_list[i]*"/"
+  Jmax = maximum(spatio_func_list[i].(0:L, 0:L, paras.L))* π
+  Jmin = minimum(spatio_func_list[i].(0:L, 0:L, paras.L)) * π
 
-pt_sampling(N_sample, eta_list, spatio_func, spatio_func_string; save_dir=save_dir)
+  pt_sampling(N_sample, eta_list, spatio_func_list[i], spatio_func_list_str[i]; save_dir=save_dir)
 
-println("finished all data saved to $(save_dir)")
+  println("finished all data saved to $(save_dir)")
+end
