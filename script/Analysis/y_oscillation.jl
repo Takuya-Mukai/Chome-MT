@@ -54,7 +54,8 @@ function Division_into_smaple(file_list)
 end
 
 
-function get_sorted_file(loaddir::String)
+function get_sorted_file(base_dir::String, load_dir::String)
+    loaddir = base_dir * load_dir
     file_list = get_file_list(loaddir)
     sorted_file = Division_into_smaple(file_list)
     return sorted_file
@@ -63,7 +64,8 @@ end
 
 
 
-function xy_in_time(file::String, xmin, xmax, ymin, ymax)
+function xy_in_time(file::String)
+    # , xmin, xmax, ymin, ymax)
     data = load(file)
     all_ori = data["all_ori"]
     # all_pos = data["all_pos"]
@@ -94,37 +96,69 @@ function spatio_func(x, y, L)
 end
 
 
+function smoothing(x::Vector, n::Int64)
+  # make smoothing data
+  N = length(x)
+  x_smooth = zeros(N-n+1)
+  # change method if n is even or not
+  if n % 2 == 1
+    for i in 1:N-n+1
+      if (i == 1)
+        x_smooth[i] = sum(x[1:n]) / n
+      else
+        x_smooth[i] = x_smooth[i-1] + (x[i+n-1] - x[i-1]) / n
+      end
+    end
+  else
+    error("make smoothing parameter to odd number")
+  end
+  return x_smooth
+end
+
+
+function xy_in_time_with_smoothing(file_dir::String; smoothing_parameter=11)
+  x, y = xy_in_time(file_dir)
+  x_smooth = smoothing(x, smoothing_parameter)
+  y_smooth = smoothing(y, smoothing_parameter)
+  return x_smooth, y_smooth
+end
+
+
+# main
 L = 30.0
 L_frac = 0.2
 up = L / 2 + L * L_frac / 2
 low = L / 2 - L * L_frac / 2
 
+# define file to pick up data
 base_dir = "./Data/oscillation/"
 load_dir = "ystep_Lfrac02_L30_nstep_2M_v1/"
-loaddir = base_dir * load_dir
-sorted_file = get_sorted_file(loaddir)
+sorted_file = get_sorted_file(base_dir, load_dir)
 target_file = sorted_file[1][4]
+file_path = base_dir * load_dir * target_file
 
-file_path = loaddir*target_file
-xop, yop = xy_in_time(file_path, 0, 1, low, up)
-step_list = [i for i in 1:length(xop)]
+# make data to write graph from file_path
+# s_p means smoothing parameter
+s_p = 11
+x, y = xy_in_time_with_smoothing(file_path, smoothing_parameter = s_p)
+step_list = [i for i in 1:length(x)]
 
-# make graph about mean of all agents in x and y direction
+# make graph from data
 f = Figure()
 ax = Axis(f[1, 1],
           xlabel = "Time step",
           ylabel = "Mean of all agents",
           title = "Oscillation in y and x direction",)
-lines!(ax, step_list, xop, label = "x direction")
-lines!(ax, step_list, yop, label = "y direction")
+lines!(ax, step_list, x, label = "x direction")
+lines!(ax, step_list, y, label = "y direction")
 axislegend(ax)
-pic_name = "Data/oscillation/pic/oscillation_"* reduce(*, split(target_file, ".jld2")) *".png"
+pic_name = "Data/oscillation/pic/oscillation_"* reduce(*, split(target_file, ".jld2")) *"_$(smoothing_parameter).png"
 save(pic_name, f)
 println("saved graph to $pic_name")
 
 
 # make animation
-data = load(file_path)
-all_ori = data["all_ori"]
-all_pos = data["all_pos"]
-@time Animattion(all_pos, all_ori, spatio_func,join(split(loaddir * target_file, ".")[1:end-1], ".") * ".mp4"; framerate=60, L=30)
+# data = load(file_path)
+# all_ori = data["all_ori"]
+# all_pos = data["all_pos"]
+# @time Animattion(all_pos, all_ori, spatio_func,join(split(loaddir * target_file, ".")[1:end-1], ".") * ".mp4"; framerate=60, L=30)
