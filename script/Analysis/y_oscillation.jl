@@ -188,7 +188,7 @@ function main()
         # step_list4raw = [i for i in 1:length(x_raw)]
         # write x, y to file with jld2
         save_file_path = "Data/oscillation/smoothed/oscillation_$(split(load_dir, "_")[2])_$(target_file)"
-        @save save_file_path data=Dict("x" => x_raw, "y" => y_raw)
+        @save save_file_path x_raw y_raw
         println("saved data to $save_file_path")
 
 
@@ -211,3 +211,5 @@ function main()
       end
   end
 end
+
+# main()

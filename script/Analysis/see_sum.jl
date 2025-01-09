@@ -4,7 +4,7 @@ include("y_oscillation.jl")
 
 function get_sum_for_each_frac(base_dir, file_list::Vector)
   # make sure the vector length is the same for all files
-  vector_length = length(load(joinpath(base_dir, file_list[1]))["data"]["x"])
+  vector_length = length(load(joinpath(base_dir, file_list[1]))["x_raw"])
   # initialize the vectors and dictionary
   x = zeros(vector_length)
   y = zeros(vector_length)
@@ -23,9 +23,9 @@ function get_sum_for_each_frac(base_dir, file_list::Vector)
 
   for file in file_list
     frac = split(file, "_")[2]
-    data = load(joinpath(base_dir, file))["data"]
-    dict[frac][1] = dict[frac][1] .+ data["x"]
-    dict[frac][2] = dict[frac][2] .+ data["y"]
+    data = load(joinpath(base_dir, file))
+    dict[frac][1] = dict[frac][1] .+ data["x_raw"]
+    dict[frac][2] = dict[frac][2] .+ data["y_raw"]
   end
   return dict 
 end
@@ -55,5 +55,5 @@ for keys in keys(data)
     mkdir(joinpath("Data/oscillation/pic"))
   end
   save(joinpath("Data/oscillation/pic", "sum_$(keys)_smoothing$(smoothing_num).png"), fig)
-  println("Sum of $(keys) is saved.")
+  println("graph of Sum of $(keys) is saved.")
 end
