@@ -1,5 +1,6 @@
 include("../../src/Chemo-MT.jl")
 using DelimitedFiles
+using CairoMakie
 
 """
 get all file with .jld2
@@ -22,7 +23,7 @@ end
 """
 Division into sample X
 """
-function Division_into_smaple(file_list)
+function Division_into_sample(file_list::Vector)
 
     #* find  number of sample
     sample_list = []
@@ -134,34 +135,7 @@ function output_order_parameters_to_txt(eta, op, xo, yo, js, dir = loaddir)
         writedlm(file, [eta, op, xo, yo, js])
     end
 end
-# loaddir = "/Volumes/Extreme SSD/Kyle/Simulation_Data/VS_sin_v1/"
-# loaddir = "F:/Kyle/Simulation_Data/VS_step_funcJ1_v1/"
-# loaddir = "//NAS-Kawamata/kyoto/Kyle Chan/Simulation_Data/Anisotropic_MTs_Swarm/Data/VS_sin1_v2/"
-# loaddir = "NAS-Kawamata._smb._tcp.local/kyoto/Kyle Chan/Simulation_Data/Anisotropic_MTs_Swarm/Data/VS_sin05_v1/"
-# loaddir = "data/VS_sin2pi_v1/"
 
-# loaddir = "/home/kylechan/Dropbox/Research/Project/Chome-MT/Data/VS_RL_4_v1/"
-# loaddir = "/media/kylechan/Extreme SSD/Kyle/Simulation_Data/VS_RL_4_L50_v2/"
-# loaddir = "Data/post_data/yStep_Lfrac02_L30_v1/"
-loaddir = "Data/Const_J1_L30_v1/"
-# loaddir = "/Volumes/Extreme SSD/Kyle/Simulation_Data/VS_step_funcJ1_v1/"
-
-# loaddir = "/mnt/SSD_RAID0/kyle/Viscek_anisotropic/yStep_v1/"
-
-file_list = get_file_list(loaddir)
-sorted_file = Division_into_smaple(file_list)
-
-@time eta_list, op_list = phase_transistion(sorted_file, loaddir)
-println("analysing...")
-# @time op_list, xorder_list, yorder_list, eta_list = XYoder(sorted_file, loaddir)
-# @time op_list, xorder_list, yorder_list, eta_list = XYorder_inside(sorted_file, loaddir; xmin=0, xmax=L, ymin=L/2, ymax=2L/3)
-
-
-
-# S1 = sorted_file[5]
-# data = load(loaddir*S1[2])
-# all_ori = data["all_ori"]
-# all_pos = data["all_pos"]
 
 
 # L = 30
@@ -180,6 +154,77 @@ function spatio_func(x,y,L)
         return 0.0
     end 
 end
+
+
+function theta2norm_v(theta::Vector)
+  v = [cos.(theta), sin.(theta)]
+  vector = sum(v, dims=2)/length(theta)
+  return norm(vector)
+end
+
+
+function extract_number_from_filename(filename)
+  m = match(r"eta_(.*?)\.jld2", filename)
+  if m !== nothing
+      extracted = m.captures[1]  # `eta_` と `.jld2` の間の部分
+      return parse(Float64, String(extracted))
+  else
+      println("No match found")
+  end
+end
+
+root_dir = "Data/b8_middle/"
+dir_list = ["f10/", "f8/", "f6/", "f4/", "f2/", "f0/"]
+# dir_list = ["constant_L10_ρ1", "constant_L10_ρ2", "constant_L10_ρ3"]
+
+load_dir = [root_dir*dir for dir in dir_list]
+file_list = get_file_list.(load_dir)
+sorted_file = Division_into_sample.(file_list)
+eta_list = [extract_number_from_filename(file) for file in sorted_file[1][1]]
+phi_list = [1.0, 0.8, 0.6, 0.4, 0.2, 0.0]
+println("analysing...")
+v_list = fill(0.0, length(dir_list), length(sorted_file[1][1]))
+
+for i in axes(sorted_file, 1)
+  # fx: file list in each spatio_func
+  fx = sorted_file[i]
+  local average_v_in_each_eta = fill(0.0, length(sorted_file[1][1]))
+  local load_dir_i = load_dir[i]
+  for j in axes(fx, 1)
+    # sample_i: file name list of each eta
+    local sample_j = fx[j]
+
+    local data = [load(joinpath(load_dir_i, file)) for file in sample_j]
+
+    # all_ori をデータから取り出して配列に追加
+    average_v = [theta2norm_v(d["all_ori"][end]) for d in data]
+
+    # 平均ベクトルを計算
+    # 平均ベクトルを各ηに加算
+    average_v_in_each_eta += average_v/length(fx)
+  end
+  v_list[i, :] .= average_v_in_each_eta
+end
+
+function main()
+    
+    f = Figure()
+    ax = Axis(f[1, 1],
+        xlabel = L"η",
+        ylabel = L"<v>",
+        title = "Relationship between η and the average value of v")
+    
+    for i in 1:length(v_list[:,1])
+      lines!(ax, Float64.(eta_list), Float64.(v_list[i,:]), label="ϕ = $(phi_list[i])")
+    end
+
+    axislegend(ax)
+
+    save("Data/b8_middle/average_v.png", f)
+end
+
+main()
+
 
 # Jmax = maximum(spatio_func.(0:L, 0:L, L)) 
 # Jmin = minimum(spatio_func.(0:L, 0:L, L))

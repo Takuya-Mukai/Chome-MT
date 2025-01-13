@@ -99,19 +99,6 @@ function xy_in_time(file::String)
 end
 
 
-function spatio_func(x, y, L)
-    L_frac = 0.2
-    up = L / 2 + L * L_frac / 2
-    low = L / 2 - L * L_frac / 2
-
-    if y > low && y < up
-        return 1.0
-    else
-        return 0.0
-    end
-end
-
-
 function smoothing(x::Vector, n::Int64)
   # make smoothing data
   N = length(x)
@@ -140,13 +127,96 @@ function xy_in_time_with_smoothing(file_dir::String; smoothing_parameter=11)
 end
 
 
-function flip(x::Vector, l::Int64)
+function flipy(x::Vector, l::Int64)
   # if sum(x[1:l]) < 0, flip x
   # if sum(x[1:l]) > 0, do nothing
   if sum(x[1:l]) < 0
     return -x
   else
     return x
+  end
+end
+
+function flipx(x::Vector, l::Int64)
+  if sum(x[end-l:end]) < 0
+    return -x
+  else
+    return x
+  end
+end
+
+
+function main()
+  # make graph for each directory
+  for (index, load_dir) in enumerate(load_dir_list)
+    # define file to pick up data
+    sorted_file = get_sorted_file(base_dir; load_dir)
+    sample_num = length(sorted_file)
+
+      for i in 1:sample_num
+        target_file = sorted_file[i][4]
+        file_path = base_dir * load_dir * target_file
+
+        # pick up data for animation
+        data = load(file_path)
+        all_ori = data["all_ori"]
+        all_pos = data["all_pos"]
+
+        # make data to write graph from file_path
+        x_raw, y_raw = xy_in_time(file_path)
+        x_raw, y_raw = flipx(x_raw, flip_num), flipy(y_raw, flip_num)
+        x = smoothing(x_raw, s_p)
+        y = smoothing(y_raw, s_p)
+        x, y = flipx(x, flip_num), flipy(y, flip_num)
+        step_list = [i for i in 1:length(x)]
+
+        # write x, y to file with jld2
+        save_file_path = "Data/oscillation/smoothed/oscillation_$(split(load_dir, "_")[2])_$(target_file)"
+        @save save_file_path x_raw y_raw
+        println("saved data to $save_file_path")
+
+        # make animation from data
+        function spatio_func(x, y, L)
+            idx = findfirst("frac", load_dir)[1]+4
+            L_frac = parse(Float64, load_dir[idx:idx+1])/10
+
+            up = L / 2 + L * L_frac / 2
+            low = L / 2 - L * L_frac / 2
+
+            if y > low && y < up
+                return 1.0
+            else
+                return 0.0
+            end
+        end
+
+
+        # save_animation_dir = joinpath("Data/oscillation/pic/animation/", load_dir)
+        # animation_file = joinpath( target_file*".mp4")
+        # # check if the directory is already exist
+        # if isdir(save_animation_dir) == false
+        #   mkdir(save_animation_dir)
+        # end
+        # @time Animattion(all_pos, all_ori, spatio_func, joinpath(save_animation_dir, animation_file); framerate=60, L=30)
+        # println("saved animation to $(joinpath(save_animation_dir, animation_file))")
+
+
+
+        # make graph from data
+        f = Figure()
+        ax = Axis(f[1, 1],
+                xlabel = "Time step",
+                ylabel = "Mean of all agents",
+                title = "Oscillation in y direction",)
+        # lines!(ax, step_list, x, label = "x direction")
+        lines!(ax, step_list, y, label="y direction $(s_p)")
+        axislegend(ax)
+        pic_name = "Data/oscillation/pic/y_oscillation_$(split(load_dir, "_")[2])_"*
+                          reduce(*, split(target_file, ".jld2")) *"_smoothing$(s_p).png"
+        save(pic_name, f)
+        println("saved graph to $pic_name")
+
+      end
   end
 end
 
@@ -165,51 +235,7 @@ load_dir_list = get_subdirectories(base_dir)
 # s_p means smoothing parameter
 s_p = 41
 # flip_num means the length of the sum of x and y
-flip_num = 150
+flip_num = 200
 
-
-function main()
-  # make graph for each directory
-  for (index, load_dir) in enumerate(load_dir_list)
-    # define file to pick up data
-    sorted_file = get_sorted_file(base_dir; load_dir)
-    sample_num = length(sorted_file)
-
-      for i in 1:sample_num
-        target_file = sorted_file[i][4]
-        file_path = base_dir * load_dir * target_file
-
-        # make data to write graph from file_path
-        x_raw, y_raw = xy_in_time(file_path)
-        x = smoothing(x_raw, s_p)
-        y = smoothing(y_raw, s_p)
-        x, y = flip(x, flip_num), flip(y, flip_num)
-        step_list = [i for i in 1:length(x)]
-        # step_list4raw = [i for i in 1:length(x_raw)]
-        # write x, y to file with jld2
-        save_file_path = "Data/oscillation/smoothed/oscillation_$(split(load_dir, "_")[2])_$(target_file)"
-        @save save_file_path x_raw y_raw
-        println("saved data to $save_file_path")
-
-
-
-        # make graph from data
-        f = Figure()
-        ax = Axis(f[1, 1],
-                xlabel = "Time step",
-                ylabel = "Mean of all agents",
-                title = "Oscillation in y and x direction",)
-        # lines!(ax, step_list, x, label = "x direction")
-        lines!(ax, step_list, y, label="y direction")
-        # lines!(ax, step_list4raw, y_raw, label="y_raw direction")
-        axislegend(ax)
-        pic_name = "Data/oscillation/pic/oscillation_$(split(load_dir, "_")[2])_"*
-                          reduce(*, split(target_file, ".jld2")) *"_smoothing$(s_p).png"
-        save(pic_name, f)
-        println("saved graph to $pic_name")
-
-      end
-  end
-end
 
 # main()
