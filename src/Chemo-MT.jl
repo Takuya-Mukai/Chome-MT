@@ -4,10 +4,10 @@ using StaticArrays
 using Statistics
 using LinearAlgebra
 using Interpolations
-using CellListMap.PeriodicSystems
+# using CellListMap.PeriodicSystems
 using Parameters 
-import CellListMap.PeriodicSystems: copy_output, reset_output!, reducer
-import CellListMap.wrap_relative_to
+# import CellListMap.PeriodicSystems: copy_output, reset_output!, reducer
+# import CellListMap.wrap_relative_to
 using JLD2
 using ProgressMeter
 using GLMakie
