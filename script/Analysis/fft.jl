@@ -119,8 +119,6 @@ function xy_in_time_with_aline_x(file::String, spatio_func::Function)
     num_in_region = sum(spatio_func.(x, y, data["paras"].L))
     all_xop[i] = sum( spatio_func.(x, y, data["paras"].L) .* aline.(cos.(all_ori[i])) )/num_in_region
     all_yop[i] = sum( spatio_func.(x, y, data["paras"].L) .* aline.(sin.(all_ori[i])) )/num_in_region
-    # all_xop[i] = sum( cos.(all_ori[i]) )/num_in_region
-    # all_yop[i] = sum( sin.(all_ori[i]) )/num_in_region
     num_in_region_list[i] = num_in_region
   end
 
@@ -224,6 +222,19 @@ function write_3d_graph(file::String, spatio_func::Function, division_num::Int64
   display(fig)
 end
 
+function PickUpNumFromDirName(DirName::String)
+  m = match(r"Lfrac(\d+)", DirName)
+
+  # 数字を Float64 に変換
+  if m !== nothing
+      value = parse(Float64, m.captures[1])/10
+  else
+    println("could not pick up number from $(DirName)")
+  end
+  return value
+end
+
+
 
 
 # define base directory
@@ -232,18 +243,15 @@ base_dir = "./Data/oscillation/"
 load_dir_list = get_subdirectories(base_dir)
 flip_num = 200
 
-function main()
-  # f = Figure(resolution = (800, 600))
-  # f1 = Figure(resolution = (800, 600))
-  # f2 = Figure(resolution = (800, 600))
+# function main()
   f3 = Figure(resolution = (800, 600))
-  # define color list for graph
-  color_list = ["red", "blue", "green", "orange", "purple", "black", "brown", "pink", "gray", "cyan", "magenta", "yellow"]
+
+  dir_fft = Dict()
+  dir_NumInRegion = Dict()
+  dir_AlignedVx = Dict()
+  dir_yOscillation = Dict()
 
   for (color, load_dir) in enumerate(load_dir_list)
-  # color = 1
-  # i = 1
-  # load_dir = load_dir_list[i]
     sorted_files = get_sorted_file(base_dir; load_dir = load_dir)
 
     function spatio_func(x, y, L)
@@ -260,38 +268,38 @@ function main()
       end
     end
 
-    # ax1 = Axis(f1[1, 1],title = "frac = $(split(load_dir, "_")[2]), frac = $(split(load_dir, "_")[2])", xlabel = "frequency", ylabel = "amplitude")
+    eta_fft = Dict()
+    eta_NumInRegion = Dict()
+    eta_AlignedVx = Dict()
+    eta_yOscillation = Dict()
+    x_length = length(xy_in_time(joinpath(base_dir, load_dir, sorted_files[1][2]))[1])
     for eta in 2:8
-      # eta = 3
-      # ax = Axis(f[(eta-2)÷3+1, (eta-2)%3],title = "eta = $(round((eta-1)*0.2, sigdigits=2)), frac = $(split(load_dir, "_")[2])", xlabel = "frequency", ylabel = "amplitude")
-      # ylims!(high = 55)
-
-      # ax2 = Axis(f2[(eta-2)÷3+1, (eta-2)%3],title = "eta = $(round((eta-1)*0.2, sigdigits=2)), frac = $(split(load_dir, "_")[2])", xlabel = "Timestep", ylabel = "Number of agent in the band")
 
       ax3 = Axis(f3[(eta-2)÷3+1, (eta-2)%3],title = "eta = $(round((eta-1)*0.2, sigdigits=2)), frac = $(split(load_dir, "_")[2])", xlabel = "Time step", ylabel = "v_x")
       # limit the range of y-axis from 0 to 1
       ylims!(high = 1.3)
       ylims!(low = -1.3)
 
-      x_length = length(xy_in_time(joinpath(base_dir, load_dir, sorted_files[1][eta]))[1])
       sample_num = length(sorted_files)
       time_step = 1:x_length
       x, y = zeros(x_length), zeros(x_length)
       alined_x = zeros(x_length)
       alined_y = zeros(x_length)
+      target_file = sorted_files[1][eta]
+      alined_xop, alined_yop, num_in_region_list = xy_in_time_with_aline_x(joinpath(base_dir, load_dir, target_file), spatio_func)
 
-      # for sample_file in sorted_files
-      sample_file = sorted_files[1]
+      for sample_file in sorted_files
+      # sample_file = sorted_files[1]
         target_file = sample_file[eta]
         all_xop, all_yop = xy_in_time(joinpath(base_dir, load_dir, target_file))
         alined_xop, alined_yop, num_in_region_list = xy_in_time_with_aline_x(joinpath(base_dir, load_dir, target_file), spatio_func)
         x_flip, y_flip = flipx(all_xop, flip_num), flipy(all_yop, flip_num)
         x .+= x_flip/sample_num
         y .+= y_flip/sample_num
-        alined_x .+= alined_xop
-        alined_y .+= alined_yop
+        alined_x .+= alined_xop/sample_num
+        alined_y .+= alined_yop/sample_num
         # lines!(time_step, y_flip)
-      # end
+      end
       fft_freq = rfftfreq(x_length, 1/(60*0.001))
       y_fft = abs.(rfft(y))
       frac = split(load_dir, "_")[2]
@@ -301,25 +309,134 @@ function main()
       que_for_sort = sortperm(y_fft, rev=true)
       sorted_freq = fft_freq[que_for_sort]
       eta_num = [(eta-1)*0.2 for _ in 1:3]
-      # println("| $(round((eta-1)*0.2, sigdigits=2)) | $(round(sorted_freq[1], sigdigits=3)) | $(round(sorted_freq[2], sigdigits=3)) | $(round(sorted_freq[3], sigdigits=3)) |")
-      # println("frac: $(frac), η: $(round(eta, sigdigits=3)), freq: $(round(freq, sigdigits=3)), T= $(round(T, sigdigits=3)), average_alined_x: $(round(average_alined_x, sigdigits=3)), wave_length: $(round(T*average_alined_x, sigdigits=3))")
-      # println("| $(frac) | $(round((eta-1)*0.2, sigdigits=3)) | $(round(freq, sigdigits=3)) | $(round(T, sigdigits=3)) | $(round(average_alined_x, sigdigits=3)) | $(round(T*average_alined_x, sigdigits=3)) |")
 
-      # lines!(ax, fft_freq[1:25], y_fft[1:25], color = color_list[color], label = frac)
-      # scatter!(ax1, eta_num, sorted_freq[1:3], color = color_list[eta-1])
-      # lines!(ax2, 1:length(num_in_region_list), num_in_region_list, label = "eta = $(eta_num[1])")
-      # lines!(ax3, time_step, alined_x, color = color_list[color], label = frac*" alined v_x")
-      lines!(ax3, time_step, alined_x, color = color_list[color], label = frac*" v_x")
       # show the graph
+      eta_fft["$eta"] = [fft_freq, y_fft]
+      eta_NumInRegion["$eta"] = [1:60*0.001:1+60*0.001*(length(num_in_region_list)-1), num_in_region_list]
+      eta_AlignedVx["$eta"] = [1:60*0.001:1+60*0.001*(length(alined_x)-1), alined_x]
+      eta_yOscillation["$eta"] = [1:60*0.001:1+60*0.001*(length(y)-1), y]
     end
-    display(f3)
+    dir_fft[load_dir] = eta_fft
+    dir_NumInRegion[load_dir] = eta_NumInRegion
+    dir_AlignedVx[load_dir] = eta_AlignedVx
+    dir_yOscillation[load_dir] = eta_yOscillation
   end
-  # save("/home/muta/slidev/project/b8/discussion/src/frequency_frac04.png", f)
+
+
+  ## pick up the top 3 frequency of each eta and dir_fft
+  top_freq_dir = Dict()
+  top_freq_eta = Dict()
+  for (key_dir, value_dir) in dir_fft
+    top_freq_eta = Dict()
+    for (key_eta, value_eta) in value_dir
+      que_for_sort = sortperm(value_eta[2], rev=true)
+      sorted_freq = value_eta[1][que_for_sort]
+      sorted_freq_amp = value_eta[2][que_for_sort]
+      top_freq_eta[key_eta] = [sorted_freq[1:3], sorted_freq_amp[1:3]]
+    end
+    top_freq_dir[key_dir] = top_freq_eta
+  end
+
+
+  color_list = [:red, :blue, :green, :yellow, :purple, :orange, :black]
+
+  f = Figure(resolution = (1000, 800), fontsize = 20)
+  ax = Axis(f[1,1], xlabel = "frequency", ylabel = "eta")
+  maker_size = 20
+  handles = [MarkerElement(marker=:circle, color = color, markersize = maker_size) for color in color_list[1:length(top_freq_dir)]]
+  labels = string.(PickUpNumFromDirName.(collect(keys(top_freq_dir))))
+  legend = Legend(f, handles, labels, "each bandwidth")
+  f[1,2] = legend
+
+  Label(f[0, :], "average of top 3 frequency")
+  for (index, (key_dict, value_dict)) in enumerate(top_freq_dir)
+    for (key_eta, value_eta) in value_dict
+      scatter!(ax, sum(value_eta[1].*value_eta[2])/sum(value_eta[2]), parse(Int, key_eta)/10, markersize=20, color=color_list[index], label="bandwidth:$( PickUpNumFromDirName(key_dict))")
+    end
+  end
+  save("/home/muta/Code/slidev/project/b8/last/src/Top_frequency&eta.png", f)
+
+  #plot the graph
+  f = Figure(resolution = (1500, 1000), fontsize = 20)
+  Axes_fft = [Axis(f[((i-1)÷3+1), (i-1)%3*2-1], xlabel = "frequency", ylabel = "amplitude", title = "η = $((i+1)/10)", limits = ((0, 0.12), (0, 160))) for i in 1:7]
+  Label(f[0, :], "FFT Analysis")
+  dir_fft_length = length(dir_fft)
+  for (index, (key_dict, value_dict)) in enumerate(dir_fft)
+    for (key_eta, value_eta) in value_dict
+      for (i, ax) in enumerate(Axes_fft)
+        if key_eta == string(i+1)
+          lines!(ax, value_eta[1], value_eta[2], label = "bandwidth:$( PickUpNumFromDirName(key_dict))")
+          # write the legend at the end of the dir_fft
+          if index == dir_fft_length
+            Legend(f[((parse(Int,key_eta)-2)÷3+1), (parse(Int,key_eta)-2)%3*2], ax)
+          end
+        end
+      end
+    end
+  end
+  save("/home/muta/Code/slidev/project/b8/last/src/fft.png",f)
+
+  f = Figure(resolution = (1500, 1000), fontsize = 20)
+  Axes_NumInRegion = [Axis(f[((i-1)÷3+1), (i-1)%3*2-1], xlabel = "Timestep", ylabel = "Number of agent in the band", title = "η = $((i+1)/10)", limits=(nothing, (0, 900))) for i in 1:7]
+  Label(f[0, :], "Number of agents in the region")
+  for (index, (key_dict, value_dict)) in enumerate(dir_NumInRegion)
+    for (key_eta, value_eta) in value_dict
+      for (i, ax) in enumerate(Axes_NumInRegion)
+        if key_eta == string(i+1)
+          lines!(ax, value_eta[1], value_eta[2], label = "bandwidth:$( PickUpNumFromDirName(key_dict))")
+          if index == dir_fft_length
+            Legend(f[((parse(Int,key_eta)-2)÷3+1), (parse(Int,key_eta)-2)%3*2], ax)
+          end
+        end
+      end
+    end
+  end
+  save("/home/muta/Code/slidev/project/b8/last/src/AgentNumber.png",f)
+
+  f = Figure(resolution = (1500, 1000), fontsize = 20)
+  Axes_AlignedVx = [Axis(f[((i-1)÷3+1), (i-1)%3*2-1], xlabel = "Time step", ylabel = "v_x", title = "η = $((i+1)/10)", limits = (nothing, (0, 1.0))) for i in 1:7]
+  Label(f[0, :], "Aligned v_x")
+  for (index,(key_dict, value_dict)) in enumerate(dir_AlignedVx)
+    for (key_eta, value_eta) in value_dict
+      for (i, ax) in enumerate(Axes_AlignedVx)
+        if key_eta == string(i+1)
+          lines!(ax, value_eta[1], value_eta[2], label = "bandwidth:$( PickUpNumFromDirName(key_dict))")
+          if index == dir_fft_length
+            Legend(f[((parse(Int,key_eta)-2)÷3+1), (parse(Int,key_eta)-2)%3*2], ax)
+          end
+        end
+      end
+    end
+  end
+  save("/home/muta/Code/slidev/project/b8/last/src/v_x.png",f)
+
+  f = Figure(resolution = (1500, 1000), fontsize = 20)
+  Axes_yOscillation = [Axis(f[((i-1)÷3+1), (i-1)%3*2-1], xlabel = "Time step", ylabel = "v_y", title = "η = $((i+1)/10)", limits = (nothing, (-1.3, 1.3))) for i in 1:7]
+  Axes_yOscillation = [Axis(f[((i-1)÷3+1), (i-1)%3*2-1], xlabel = "Time step", ylabel = "v_y", title = "η = $((i+1)/10)") for i in 1:7]
+  Label(f[0, :], "Oscillation in y direction")
+  for (index, (key_dict, value_dict)) in enumerate(dir_yOscillation)
+    for (key_eta, value_eta) in value_dict
+      for (i, ax) in enumerate(Axes_yOscillation)
+        if key_eta == string(i+1)
+          lines!(ax, value_eta[1], value_eta[2], label = "bandwidth:$( PickUpNumFromDirName(key_dict))")
+          if index == dir_fft_length
+            Legend(f[((parse(Int,key_eta)-2)÷3+1), (parse(Int,key_eta)-2)%3*2], ax)
+          end
+        end
+      end
+    end
+  end
+  save("/home/muta/Code/slidev/project/b8/last/src/yOscillation.png",f)
+
+
+
+
+# save("/home/muta/slidev/project/b8/discussion/src/frequency_frac04.png", f)
   # save("/home/muta/slidev/project/b8/discussion/src/Top_frequency&eta_frac04.png", f1)
   # save("/home/muta/slidev/project/b8/discussion/src/number_of_agents_frac04.png", f2)
   # save("/home/muta/slidev/project/b8/discussion/src/alined_vx_$(split(load_dir, "_")[2]).png", f3)
   # save("/home/muta/slidev/project/b8/discussion/src/vx_$(split(load_dir, "_")[2]).png", f3)
-end
+# end
 
 load_dir = load_dir_list[2]
 function spatio_func(x, y, L)
@@ -340,4 +457,4 @@ file = joinpath(base_dir, load_dir, file_list[10])
 idx = findfirst("frac", load_dir)[1]+4
 # print(parse(Float64, load_dir[idx:idx+1])/10)
 # write_3d_graph(file, spatio_func, 100)
-main()
+# main()
