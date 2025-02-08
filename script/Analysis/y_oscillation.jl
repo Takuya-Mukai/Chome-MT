@@ -186,7 +186,7 @@ function main()
 
       # for i in 1:sample_num
         i = 1
-        target_file = sorted_file[i][10]
+        target_file = sorted_file[i][18]
         file_path = base_dir * load_dir * target_file
 
         # pick up data for animation

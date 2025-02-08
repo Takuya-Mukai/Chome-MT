@@ -74,7 +74,7 @@ function Division_into_smaple(file_list)
 end
 
 
-function xy_in_time(file::String)
+function xy_in_time(file::String, spatio_func::Function)
   # , xmin, xmax, ymin, ymax)
   data = load(file)
   all_ori = data["all_ori"]
@@ -272,8 +272,8 @@ flip_num = 200
     eta_NumInRegion = Dict()
     eta_AlignedVx = Dict()
     eta_yOscillation = Dict()
-    x_length = length(xy_in_time(joinpath(base_dir, load_dir, sorted_files[1][2]))[1])
-    for eta in 2:8
+    x_length = length(xy_in_time(joinpath(base_dir, load_dir, sorted_files[1][2]), spatio_func)[1])
+    for eta in 2:10
 
       ax3 = Axis(f3[(eta-2)÷3+1, (eta-2)%3],title = "eta = $(round((eta-1)*0.2, sigdigits=2)), frac = $(split(load_dir, "_")[2])", xlabel = "Time step", ylabel = "v_x")
       # limit the range of y-axis from 0 to 1
@@ -291,7 +291,7 @@ flip_num = 200
       for sample_file in sorted_files
       # sample_file = sorted_files[1]
         target_file = sample_file[eta]
-        all_xop, all_yop = xy_in_time(joinpath(base_dir, load_dir, target_file))
+        all_xop, all_yop = xy_in_time(joinpath(base_dir, load_dir, target_file), spatio_func)
         alined_xop, alined_yop, num_in_region_list = xy_in_time_with_aline_x(joinpath(base_dir, load_dir, target_file), spatio_func)
         x_flip, y_flip = flipx(all_xop, flip_num), flipy(all_yop, flip_num)
         x .+= x_flip/sample_num
@@ -358,7 +358,7 @@ flip_num = 200
 
   #plot the graph
   f = Figure(resolution = (1500, 1000), fontsize = 20)
-  Axes_fft = [Axis(f[((i-1)÷3+1), (i-1)%3*2-1], xlabel = "frequency", ylabel = "amplitude", title = "η = $((i+1)/10)", limits = ((0, 0.12), (0, 160))) for i in 1:7]
+  Axes_fft = [Axis(f[((i-1)÷3+1), (i-1)%3*2-1], xlabel = "frequency", ylabel = "amplitude", title = "η = $((i+1)/10)", limits = ((0, 0.12), (0, 160))) for i in 1:9]
   Label(f[0, :], "FFT Analysis")
   dir_fft_length = length(dir_fft)
   for (index, (key_dict, value_dict)) in enumerate(dir_fft)
@@ -377,7 +377,7 @@ flip_num = 200
   save("/home/muta/Code/slidev/project/b8/last/src/fft.png",f)
 
   f = Figure(resolution = (1500, 1000), fontsize = 20)
-  Axes_NumInRegion = [Axis(f[((i-1)÷3+1), (i-1)%3*2-1], xlabel = "Timestep", ylabel = "Number of agent in the band", title = "η = $((i+1)/10)", limits=(nothing, (0, 900))) for i in 1:7]
+  Axes_NumInRegion = [Axis(f[((i-1)÷3+1), (i-1)%3*2-1], xlabel = "Timestep", ylabel = "Number of agent in the band", title = "η = $((i+1)/10)", limits=(nothing, (0, 900))) for i in 1:9]
   Label(f[0, :], "Number of agents in the region")
   for (index, (key_dict, value_dict)) in enumerate(dir_NumInRegion)
     for (key_eta, value_eta) in value_dict
@@ -394,7 +394,7 @@ flip_num = 200
   save("/home/muta/Code/slidev/project/b8/last/src/AgentNumber.png",f)
 
   f = Figure(resolution = (1500, 1000), fontsize = 20)
-  Axes_AlignedVx = [Axis(f[((i-1)÷3+1), (i-1)%3*2-1], xlabel = "Time step", ylabel = "v_x", title = "η = $((i+1)/10)", limits = (nothing, (0, 1.0))) for i in 1:7]
+  Axes_AlignedVx = [Axis(f[((i-1)÷3+1), (i-1)%3*2-1], xlabel = "Time step", ylabel = "v_x", title = "η = $((i+1)/10)", limits = (nothing, (0, 1.0))) for i in 1:9]
   Label(f[0, :], "Aligned v_x")
   for (index,(key_dict, value_dict)) in enumerate(dir_AlignedVx)
     for (key_eta, value_eta) in value_dict
