@@ -186,6 +186,7 @@ flip_num = 200
   dir_fft_region = Dict()
   dir_fft_averageLoc_x = Dict()
   dir_fft_averageLoc_y = Dict()
+  dir_fft_inTheRegion = Dict()
   dir_NumInRegion = Dict()
   dir_AlignedVx = Dict()
   dir_yOscillation = Dict()
@@ -214,6 +215,7 @@ flip_num = 200
     eta_fft_region = Dict()
     eta_fft_averageLoc_x = Dict()
     eta_fft_averageLoc_y = Dict()
+    eta_fft_inTheRegion = Dict()
     eta_NumInRegion = Dict()
     eta_AlignedVx = Dict()
     eta_yOscillation = Dict()
@@ -270,6 +272,11 @@ flip_num = 200
       eta_fft_averageLoc_y["$eta"] = [fft_freq, y_fft_averageLoc]
       eta_fft_averageLoc_x["$eta"] = [fft_freq, x_fft_averageLoc]
 
+      # FFT by number of agents in the region
+      fft_freq = rfftfreq(x_length, 1/(60*0.001))
+      y_fft_inTheRegion = abs.(rfft(num_in_region_list))
+      eta_fft_inTheRegion["$eta"] = [fft_freq, y_fft_inTheRegion]
+
       eta_NumInRegion["$eta"] = [1:length(num_in_region_list), num_in_region_list]
       # eta_AlignedVx["$eta"] = [1:length(x_region), x_region]
       eta_AlignedVx["$eta"] = [1:length(x_all), x_all]
@@ -283,6 +290,7 @@ flip_num = 200
     dir_fft_region[load_dir] = eta_fft_region
     dir_fft_averageLoc_y[load_dir] = eta_fft_averageLoc_y
     dir_fft_averageLoc_x[load_dir] = eta_fft_averageLoc_x
+    dir_fft_inTheRegion[load_dir] = eta_fft_inTheRegion
     dir_NumInRegion[load_dir] = eta_NumInRegion
     dir_AlignedVx[load_dir] = eta_AlignedVx
     dir_yOscillation[load_dir] = eta_yOscillation
@@ -291,13 +299,13 @@ flip_num = 200
   end
 
 
-  ## pick up the top 3 frequency of each eta and dir_fft
+  # pick up the top 3 frequency of each eta and dir_fft
   top_freq_dir = Dict()
   top_freq_eta = Dict()
-  for (key_dir, value_dir) in dir_fft_region
+  for (key_dir, value_dir) in dir_fft_all
     top_freq_eta = Dict()
     for (key_eta, value_eta) in value_dir
-      que_for_sort = sortperm(value_eta[2], rev=true)
+      que_for_sort = sortperm(value_eta[2][2:end], rev=true)
       sorted_freq = value_eta[1][que_for_sort]
       sorted_freq_amp = value_eta[2][que_for_sort]
       top_freq_eta[key_eta] = [sorted_freq[1:3], sorted_freq_amp[1:3]]
@@ -329,14 +337,14 @@ flip_num = 200
   #plot the graph
   f = Figure(resolution = (1500, 1000), fontsize = 13)
   Axes_fft = [Axis(f[((i-1)÷3+1), (i-1)%3*2-1], xlabel = "frequency", ylabel = "amplitude",
-                   title = "η = $((i+1)*2/10)", limits = ((0, 0.04), (0, 300))) for i in 1:9]
+                   title = "η = $((i)*2/10)", limits = ((0, 0.04), (0, 300))) for i in 1:9]
   Label(f[0, :], "FFT Analysis")
   dir_fft_length = length(dir_fft)
   for (index, (key_dict, value_dict)) in enumerate(dir_fft_all)
     for (key_eta, value_eta) in value_dict
       for (i, ax) in enumerate(Axes_fft)
         if key_eta == string(i+1)
-          lines!(ax, value_eta[1], value_eta[2], label = "bandwidth:$( PickUpNumFromDirName(key_dict))")
+          lines!(ax, value_eta[1][2:end], value_eta[2][2:end], label = "bandwidth:$( PickUpNumFromDirName(key_dict))")
           # write the legend at the end of the dir_fft
           if index == dir_fft_length
             Legend(f[((parse(Int,key_eta)-2)÷3+1), (parse(Int,key_eta)-2)%3*2], ax)
@@ -349,14 +357,14 @@ flip_num = 200
 
   f = Figure(resolution = (1500, 1000), fontsize = 13)
   Axes_fft = [Axis(f[((i-1)÷3+1), (i-1)%3*2-1], xlabel = "frequency", ylabel = "amplitude",
-                   title = "η = $((i+1)*2/10)", limits = ((0, 0.07), (0, 160))) for i in 1:9]
+                   title = "η = $((i)*2/10)", limits = ((0, 0.07), (0, 160))) for i in 1:9]
   Label(f[0, :], "FFT Analysis")
   dir_fft_length = length(dir_fft_region)
   for (index, (key_dict, value_dict)) in enumerate(dir_fft_region)
     for (key_eta, value_eta) in value_dict
       for (i, ax) in enumerate(Axes_fft)
         if key_eta == string(i+1)
-          lines!(ax, value_eta[1], value_eta[2], label = "bandwidth:$( PickUpNumFromDirName(key_dict))")
+          lines!(ax, value_eta[1][2:end], value_eta[2][2:end], label = "bandwidth:$( PickUpNumFromDirName(key_dict))")
           # write the legend at the end of the dir_fft
           if index == dir_fft_length
             Legend(f[((parse(Int,key_eta)-2)÷3+1), (parse(Int,key_eta)-2)%3*2], ax)
@@ -369,14 +377,14 @@ flip_num = 200
 
   f = Figure(resolution = (1500, 1000), fontsize = 13)
   Axes_fft = [Axis(f[((i-1)÷3+1), (i-1)%3*2-1], xlabel = "frequency", ylabel = "amplitude",
-                   title = "η = $((i+1)*2/10)", limits = ((0, 0.04), nothing)) for i in 1:9]
+                   title = "η = $((i)*2/10)", limits = ((0, 0.04), nothing)) for i in 1:9]
   Label(f[0, :], "FFT Analysis of average location in y direction")
   dir_fft_length = length(dir_fft)
   for (index, (key_dict, value_dict)) in enumerate(dir_fft_averageLoc_y)
     for (key_eta, value_eta) in value_dict
       for (i, ax) in enumerate(Axes_fft)
         if key_eta == string(i+1)
-          lines!(ax, value_eta[1], value_eta[2], label = "bandwidth:$( PickUpNumFromDirName(key_dict))")
+          lines!(ax, value_eta[1][2:end], value_eta[2][2:end], label = "bandwidth:$( PickUpNumFromDirName(key_dict))")
           if index == dir_fft_length
             Legend(f[((parse(Int,key_eta)-2)÷3+1), (parse(Int,key_eta)-2)%3*2], ax)
           end
@@ -388,14 +396,14 @@ flip_num = 200
 
   f = Figure(resolution = (1500, 1000), fontsize = 13)
   Axes_fft = [Axis(f[((i-1)÷3+1), (i-1)%3*2-1], xlabel = "frequency", ylabel = "amplitude",
-                   title = "η = $((i+1)*2/10)", limits = ((0, 0.12), nothing)) for i in 1:9]
-  Label(f[0, :], "FFT Analysis of average location in x location")
+                   title = "η = $((i)*2/10)", limits = ((0, 0.12), nothing)) for i in 1:9]
+  Label(f[0, :], "FFT Analysis of average location in x direction")
   dir_fft_length = length(dir_fft)
   for (index, (key_dict, value_dict)) in enumerate(dir_fft_averageLoc_x)
     for (key_eta, value_eta) in value_dict
       for (i, ax) in enumerate(Axes_fft)
         if key_eta == string(i+1)
-          lines!(ax, value_eta[1], value_eta[2], label = "bandwidth:$( PickUpNumFromDirName(key_dict))")
+          lines!(ax, value_eta[1][2:end], value_eta[2][2:end], label = "bandwidth:$( PickUpNumFromDirName(key_dict))")
           if index == dir_fft_length
             Legend(f[((parse(Int,key_eta)-2)÷3+1), (parse(Int,key_eta)-2)%3*2], ax)
           end
@@ -405,10 +413,30 @@ flip_num = 200
   end
   save("/home/muta/Code/slidev/project/b8/last/src/fft_averageloc_x.png",f)
 
+  f = Figure(resolution = (1500, 1000), fontsize = 13)
+  Axes_fft = [Axis(f[((i-1)÷3+1), (i-1)%3*2-1], xlabel = "frequency", ylabel = "amplitude",
+                   title = "η = $((i)*2/10)", limits = ((0, 0.05), nothing)) for i in 1:9]
+  Label(f[0, :], "FFT Analysis of number of agents in the region")
+  dir_fft_length = length(dir_fft)
+  for (index, (key_dict, value_dict)) in enumerate(dir_fft_inTheRegion)
+    for (key_eta, value_eta) in value_dict
+      for (i, ax) in enumerate(Axes_fft)
+        if key_eta == string(i+1)
+          lines!(ax, value_eta[1][2:end], value_eta[2][2:end], label = "bandwidth:$( PickUpNumFromDirName(key_dict))")
+          if index == dir_fft_length
+            Legend(f[((parse(Int,key_eta)-2)÷3+1), (parse(Int,key_eta)-2)%3*2], ax)
+          end
+        end
+      end
+    end
+  end
+  save("/home/muta/Code/slidev/project/b8/last/src/fft_inTheRegion.png",f)
+
+
 
   f = Figure(resolution = (1500, 1000), fontsize = 13)
   Axes_NumInRegion = [Axis(f[((i-1)÷3+1), (i-1)%3*2-1], xlabel = "Timestep", ylabel = "Number of agent in the band",
-                           title = "η = $((i+1)*2/10)", limits=(nothing, (0, 900))) for i in 1:9]
+                           title = "η = $((i)*2/10)", limits=(nothing, (0, 900))) for i in 1:9]
   Label(f[0, :], "Number of agents in the region")
   for (index, (key_dict, value_dict)) in enumerate(dir_NumInRegion)
     for (key_eta, value_eta) in value_dict
@@ -429,7 +457,7 @@ flip_num = 200
 
   f = Figure(resolution = (1500, 1000), fontsize = 13)
   Axes_AlignedVx = [Axis(f[((i-1)÷3+1), (i-1)%3*2-1], xlabel = "Time step", ylabel = "v_x",
-                         title = "η = $((i+1)*2/10)", limits = (nothing, (-1.3, 1.3))) for i in 1:9]
+                         title = "η = $((i)*2/10)", limits = (nothing, (-1.3, 1.3))) for i in 1:9]
   Label(f[0, :], "Aligned v_x")
   for (index,(key_dict, value_dict)) in enumerate(dir_AlignedVx)
     for (key_eta, value_eta) in value_dict
@@ -448,7 +476,7 @@ flip_num = 200
   for (index, (key_dict, value_dict)) in enumerate(dir_yOscillation)
     f = Figure(resolution = (1500, 1000), fontsize = 13)
     Axes_yOscillation = [Axis(f[((i-1)÷3+1), (i-1)%3*2-1], xlabel = "Time step", ylabel = "v_y",
-                              title = "η = $((i+1)*2/10)", limits = (nothing, (-0.15, 0.15))) for i in 1:9]
+                              title = "η = $((i)*2/10)", limits = (nothing, (-0.15, 0.15))) for i in 1:9]
     Label(f[0, :], "Oscillation in y direction")
     for (key_eta, value_eta) in value_dict
       for (i, ax) in enumerate(Axes_yOscillation)
@@ -465,7 +493,7 @@ flip_num = 200
 
   f = Figure(resolution = (1500, 1000), fontsize = 13)
   Axes_averageLoc_x = [Axis(f[((i-1)÷3+1), (i-1)%3*2-1], xlabel = "Time step", ylabel = "x",
-                            title = "η = $((i+1)*2/10)", limits = (nothing, nothing)) for i in 1:9]
+                            title = "η = $((i)*2/10)", limits = (nothing, nothing)) for i in 1:9]
   Label(f[0, :], "Average location in x direction")
   for (index, (key_dict, value_dict)) in enumerate(dir_averageLoc_x)
     for (key_eta, value_eta) in value_dict
@@ -483,7 +511,7 @@ flip_num = 200
 
   f = Figure(resolution = (1500, 1000), fontsize = 13)
   Axes_averageLoc_y = [Axis(f[((i-1)÷3+1), (i-1)%3*2-1], xlabel = "Time step", ylabel = "y",
-                            title = "η = $((i+1)*2/10)", limits = (nothing, nothing)) for i in 1:9]
+                            title = "η = $((i)*2/10)", limits = (nothing, nothing)) for i in 1:9]
   Label(f[0, :], "Average location in y direction")
   for (index, (key_dict, value_dict)) in enumerate(dir_averageLoc_y)
     for (key_eta, value_eta) in value_dict
@@ -517,3 +545,55 @@ function write_graph(file::String)
   Legend(f[1,2], ax)
   f
 end
+
+
+
+  # sort the frequency by the amplitude
+  function sort_fft(fft_data_dir::Dict)
+    for (key_dir, value_dir) in fft_data_dir
+      for (key_eta, value_eta) in value_dir
+        que_for_sort = sortperm(value_eta[2][2:end], rev=true)
+        sorted_freq = value_eta[1][que_for_sort]
+        sorted_freq_amp = value_eta[2][que_for_sort]
+        value_dir[key_eta] = [sorted_freq, sorted_freq_amp]
+      end
+    end
+    return fft_data_dir
+  end
+
+
+
+  # save the data
+  save("./Data/Long/fft_all.jld2", dir_fft_all)
+  save("./Data/Long/fft_region.jld2", dir_fft_region)
+  save("./Data/Long/fft_averageLoc_y.jld2", dir_fft_averageLoc_y)
+  save("./Data/Long/fft_averageLoc_x.jld2", dir_fft_averageLoc_x)
+  save("./Data/Long/fft_inTheRegion.jld2", dir_fft_inTheRegion)
+  save("./Data/Long/NumInRegion.jld2", dir_NumInRegion)
+  save("./Data/Long/AlignedVx.jld2", dir_AlignedVx)
+  save("./Data/Long/yOscillation.jld2", dir_yOscillation)
+  save("./Data/Long/averageLoc_x.jld2", dir_averageLoc_x)
+  save("./Data/Long/averageLoc_y.jld2", dir_averageLoc_y)
+  # save the sorted data
+
+  dir_fft_all_sorted = sort_fft(dir_fft_all)
+  dir_fft_averageLoc_y_sorted = sort_fft(dir_fft_averageLoc_y)
+  dir_fft_averageLoc_x_sorted = sort_fft(dir_fft_averageLoc_x)
+
+  save("./Data/Long/fft_all_sorted.jld2", dir_fft_all_sorted)
+  save("./Data/Long/fft_averageLoc_y_sorted.jld2", dir_fft_averageLoc_y_sorted)
+  save("./Data/Long/fft_averageLoc_x_sorted.jld2", dir_fft_averageLoc_x_sorted)
+
+
+  # print the top 3 frequency of each eta and dir_fft in the markdown graph
+  # for (key_dir, value_dir) in dir_fft_all_sorted
+  #   println("## Bandwidth: $(PickUpNumFromDirName(key_dir))")
+  #   for (key_eta, value_eta) in value_dir
+  #     println("### η: $key_eta")
+  #     println("| frequency | amplitude |")
+  #     println("|:---------:|:---------:|")
+  #     for i in 1:3
+  #       println("| $(value_eta[1][i]) | $(value_eta[2][i]) |")
+  #     end
+  #   end
+  # end

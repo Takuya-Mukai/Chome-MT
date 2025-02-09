@@ -1,5 +1,6 @@
 include("../../src/Chemo-MT.jl")
 using CairoMakie
+using FLoops
 
 """
 get all file with .jld2
@@ -179,56 +180,59 @@ end
 
 function main()
   # make graph for each directory
-  for (index, load_dir) in enumerate(load_dir_list)
+  # for (index, load_dir) in enumerate(load_dir_list)
+    load_dir = load_dir_list[3]
     # define file to pick up data
     sorted_file = get_sorted_file(base_dir; load_dir)
     sample_num = length(sorted_file)
 
       # for i in 1:sample_num
-        i = 1
-        target_file = sorted_file[i][10]
-        file_path = base_dir * load_dir * target_file
+      @floop for eta in 2:10
+          i = 1
+          target_file = sorted_file[i][eta]
+          file_path = base_dir * load_dir * target_file
 
-        # pick up data for animation
-        data = load(file_path)
-        all_ori = data["all_ori"]
-        all_pos = data["all_pos"]
+          # pick up data for animation
+          data = load(file_path)
+          all_ori = data["all_ori"]
+          all_pos = data["all_pos"]
 
-        # make data to write graph from file_path
-        # x_raw, y_raw = xy_in_time(file_path)
-        # x_raw, y_raw = flipx(x_raw, flip_num), flipy(y_raw, flip_num)
-        # x = smoothing(x_raw, s_p)
-        # y = smoothing(y_raw, s_p)
-        # x, y = flipx(x, flip_num), flipy(y, flip_num)
-        # step_list = [i for i in 1:length(x)]
+          # make data to write graph from file_path
+          # x_raw, y_raw = xy_in_time(file_path)
+          # x_raw, y_raw = flipx(x_raw, flip_num), flipy(y_raw, flip_num)
+          # x = smoothing(x_raw, s_p)
+          # y = smoothing(y_raw, s_p)
+          # x, y = flipx(x, flip_num), flipy(y, flip_num)
+          # step_list = [i for i in 1:length(x)]
 
-        # write x, y to file with jld2
-        # save_file_path = "Data/oscillation/smoothed/oscillation_$(split(load_dir, "_")[2])_$(target_file)"
-        # @save save_file_path x_raw y_raw
-        # println("saved data to $save_file_path")
+          # write x, y to file with jld2
+          # save_file_path = "Data/oscillation/smoothed/oscillation_$(split(load_dir, "_")[2])_$(target_file)"
+          # @save save_file_path x_raw y_raw
+          # println("saved data to $save_file_path")
 
-        # make animation from data
-        function spatio_func(x, y, L)
-            idx = findfirst("frac", load_dir)[1]+4
-            L_frac = parse(Float64, load_dir[idx:idx+1])/10
+          # make animation from data
+          function spatio_func(x, y, L)
+              idx = findfirst("frac", load_dir)[1]+4
+              L_frac = parse(Float64, load_dir[idx:idx+1])/10
 
-            up = L / 2 + L * L_frac / 2
-            low = L / 2 - L * L_frac / 2
+              up = L / 2 + L * L_frac / 2
+              low = L / 2 - L * L_frac / 2
 
-            if y > low && y < up
-                return 1.0
-            else
-                return 0.0
-            end
+              if y > low && y < up
+                  return 1.0
+              else
+                  return 0.0
+              end
+          end
+          save_animation_dir = joinpath("Data/oscillation_long/pic/animation/", load_dir)
+          animation_file = joinpath( target_file*".mp4")
+          # check if the directory is already exist
+          if isdir(save_animation_dir) == false
+            mkdir(save_animation_dir)
+          end
+          @time Animattion(all_pos, all_ori, spatio_func, joinpath(save_animation_dir, animation_file); framerate=60, L=30)
+          println("saved animation to $(joinpath(save_animation_dir, animation_file))")
         end
-        save_animation_dir = joinpath("Data/oscillation/pic/animation/", load_dir)
-        animation_file = joinpath( target_file*".mp4")
-        # check if the directory is already exist
-        if isdir(save_animation_dir) == false
-          mkdir(save_animation_dir)
-        end
-        @time Animattion(all_pos, all_ori, spatio_func, joinpath(save_animation_dir, animation_file); framerate=60, L=30)
-        println("saved animation to $(joinpath(save_animation_dir, animation_file))")
 
 
 
@@ -248,7 +252,7 @@ function main()
 
       # end
   end
-end
+# end
 
 
 # main
@@ -258,7 +262,7 @@ up = L / 2 + L * L_frac / 2
 low = L / 2 - L * L_frac / 2
 
 # define base directory
-base_dir = "./Data/oscillation/"
+base_dir = "./Data/oscillation_long/"
 # get all subdirectories
 load_dir_list = get_subdirectories(base_dir)
 
